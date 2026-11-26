@@ -82,6 +82,7 @@
   .modal { background: #fff; border-radius: 12px; width: 100%; max-width: 860px; box-shadow: 0 20px 60px rgba(0,0,0,.15); overflow: hidden; animation: modalIn .2s ease; align-self: flex-start; margin-bottom: 40px; }
   .modal-lg { max-width: 1040px; }
   .modal-xl { max-width: 1200px; }
+  .modal-full { max-width: 1440px; }
   @keyframes modalIn { from { transform: translateY(-16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   .modal-header { padding: 16px 22px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #f8fafc, #fff); }
   .modal-title { font-size: 16px; font-weight: 600; color: #0f172a; }
@@ -114,10 +115,12 @@
   .form-group .checkbox-wrap input { width: 16px; height: 16px; cursor: pointer; }
 
   /* Tabs */
-  .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 14px; gap: 4px; }
-  .tab { padding: 10px 18px; cursor: pointer; font-size: 13px; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; font-weight: 500; }
-  .tab:hover { color: var(--primary); }
-  .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+  .tab-nav { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 10px; margin-bottom: 16px; overflow-x: auto; }
+  .tab { flex: 0 0 auto; padding: 8px 20px; cursor: pointer; font-size: 13px; color: #475569; border-radius: 8px; transition: all .2s; font-weight: 500; white-space: nowrap; user-select: none; }
+  .tab:hover { color: var(--primary); background: rgba(37,99,235,.06); }
+  .tab.active { background: #fff; color: var(--primary); font-weight: 600; box-shadow: 0 1px 4px rgba(15,23,42,.12); }
+  .tab .tab-count { display: inline-block; margin-left: 6px; padding: 0 6px; height: 16px; line-height: 16px; border-radius: 8px; background: rgba(100,116,139,.15); font-size: 11px; font-weight: 500; color: #64748b; }
+  .tab.active .tab-count { background: rgba(37,99,235,.12); color: var(--primary); }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
@@ -128,9 +131,20 @@
   .status-draft { background: #fef3c7; color: #92400e; }
 
   /* Editable table */
-  .editable-table input { width: 100%; padding: 5px 8px; border: 1px solid transparent; border-radius: 4px; font-size: 12px; background: #f8fafc; }
-  .editable-table input:hover, .editable-table input:focus { border-color: var(--primary); background: #fff; outline: none; }
-  .editable-table select { width: 100%; padding: 5px 8px; border: 1px solid transparent; border-radius: 4px; font-size: 12px; background: #f8fafc; }
+  .table-scroll { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+  .editable-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
+  .editable-table th { position: sticky; top: 0; z-index: 1; background: #f8fafc; padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: #475569; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .editable-table td { padding: 7px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #334155; white-space: nowrap; }
+  .editable-table tbody tr:last-child td { border-bottom: none; }
+  .editable-table tbody tr:hover td { background: #fbfdff; }
+  .editable-table td.col-id { font-weight: 600; color: #0f172a; }
+  .editable-table td.col-actions { text-align: right; }
+  .editable-table td.col-actions .btn + .btn { margin-left: 6px; }
+  .editable-table input,
+  .editable-table select { width: 100%; min-width: 76px; padding: 6px 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; background: #fff; color: #334155; font-family: inherit; outline: none; transition: border .2s, box-shadow .2s; }
+  .editable-table input:focus,
+  .editable-table select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,.12); }
+  .editable-table input[readonly] { background: #f8fafc; color: #64748b; }
 
   /* Utils */
   .icon { display: inline-block; width: 14px; height: 14px; vertical-align: middle; }
@@ -138,7 +152,8 @@
   .section-note { background: #f0f9ff; border-left: 3px solid var(--primary); padding: 8px 12px; border-radius: 0 6px 6px 0; color: #075985; font-size: 12px; margin-bottom: 10px; }
 
   .sub-table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .sub-table-title { font-weight: 600; color: #334155; font-size: 13px; }
+  .sub-table-title { font-weight: 600; color: #334155; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  .sub-table-title .sub-count { font-weight: 400; font-size: 12px; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 10px; }
 </style>
 </head>
 <body>
@@ -468,14 +483,14 @@ function bindRowActions() {
 
       else if (act === 'optimal-create') openModal(optimalModal({readonly:false, mode:'create'}));
       else if (act === 'optimal-edit')   openModal(optimalModal({readonly:false, mode:'edit', id}));
-      else if (act === 'optimal-realtime') openModal({title:'实时数据', body:`<div style="padding:10px 0"><div class="section-note">当前项目实时采集值展示（模拟）：</div>
-        <table class="editable-table"><tr><th>参数</th><th>数值</th><th>时间戳</th></tr>
+      else if (act === 'optimal-realtime') openModal({title:'实时数据', body:`<div style="padding:6px 0"><div class="section-note">当前项目实时采集值展示（模拟）：</div>
+        <div class="table-scroll"><table class="editable-table"><thead><tr><th>参数</th><th>数值</th><th>时间戳</th></tr></thead><tbody>
         <tr><td>当前冷负荷 Q_load</td><td>1250 kW</td><td>2025-11-26 14:02:11</td></tr>
         <tr><td>冷冻水供水温度</td><td>7.2 ℃</td><td>2025-11-26 14:02:11</td></tr>
         <tr><td>冷冻水总流量</td><td>185 m³/h</td><td>2025-11-26 14:02:11</td></tr>
         <tr><td>冷冻水供回水压差</td><td>145 kPa</td><td>2025-11-26 14:02:11</td></tr>
         <tr><td>室外干球温度</td><td>26.5 ℃</td><td>2025-11-26 14:02:11</td></tr>
-        <tr><td>系统总功率</td><td>480 kW</td><td>2025-11-26 14:02:11</td></tr></table>
+        <tr><td>系统总功率</td><td>480 kW</td><td>2025-11-26 14:02:11</td></tr></tbody></table></div>
         </div>`, size:'modal-lg'});
       else if (act === 'optimal-delete') confirmDelete(id);
       else if (act === 'optimal-detail') openModal(strategyControlDetailModal(id));
@@ -514,12 +529,15 @@ function openModal({title, body, footer, size, hideFooter, onOpen}) {
   overlay.querySelectorAll('.acc-head').forEach(h => h.addEventListener('click', () => {
     h.parentElement.classList.toggle('open');
   }));
-  overlay.querySelectorAll('[data-tab]').forEach(el => el.addEventListener('click', () => {
-    const wrap = el.closest('.tabs').parentElement;
-    wrap.querySelectorAll('[data-tab]').forEach(t => t.classList.remove('active'));
-    wrap.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  overlay.querySelectorAll('.tab').forEach(el => el.addEventListener('click', () => {
+    const root = el.closest('.tab-nav');
+    if (!root) return;
+    const scope = root.parentElement;
+    root.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    scope.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
-    wrap.querySelector('.tab-content[data-tab-content="'+el.dataset.tab+'"]').classList.add('active');
+    const target = scope.querySelector('.tab-content[data-tab-content="' + el.dataset.tab + '"]');
+    if (target) target.classList.add('active');
   }));
 }
 function closeModal() {
@@ -662,36 +680,78 @@ function deviceOverviewModal(projectId) {
       ['T002','冷却塔',15,300,50,25,50],
     ]},
   ];
-  const body = tabs.map((t,i) => `
-    <div class="tab ${i===0?'active':''}" data-tab="${t.key}">${t.name}</div>
-  `).join('') + tabs.map((t,i) => `
+
+  const nav = tabs.map((t,i) => `<div class="tab ${i===0?'active':''}" data-tab="${t.key}">${t.name}<span class="tab-count">${t.rows.length}</span></div>`).join('');
+
+  const panels = tabs.map((t,i) => `
     <div class="tab-content ${i===0?'active':''}" data-tab-content="${t.key}">
       <div class="sub-table-header">
-        <div class="sub-table-title">${t.name}（${t.rows.length} 台）</div>
-        <button class="btn btn-default btn-sm" onclick="addDeviceRow('${t.key}')">➕ 添加设备</button>
+        <div class="sub-table-title">${t.name}<span class="sub-count">共 ${t.rows.length} 台设备</span></div>
+        <button class="btn btn-default btn-sm" onclick="addDeviceRow('${t.key}')">＋ 添加设备</button>
       </div>
-      <table class="editable-table">
-        <thead><tr>${t.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
-        <tbody id="dev-${t.key}">
-          ${t.rows.map(r => `<tr>${r.map((v,idx) => {
-            if (idx === 0) return `<td>${v}</td>`;
-            if (t.key === 'chiller' && idx === 2) return `<td><select><option>${v}</option>${COOLER_TYPES.map(x=>x===v?'':`<option>${x}</option>`).join('')}</select></td>`;
-            return `<td><input value="${v}" /></td>`;
-          }).join('')}<td><button class="btn-link">💾 保存</button><button class="btn-link danger">🗑 删除</button></td></tr>`).join('')}
-        </tbody>
-      </table>
+      <div class="table-scroll">
+        <table class="editable-table">
+          <thead><tr>${t.cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+          <tbody id="dev-${t.key}">
+            ${t.rows.map(r => deviceOverviewRow(t, r)).join('')}
+          </tbody>
+        </table>
+      </div>
     </div>
   `).join('');
 
   window.addDeviceRow = function(key) {
-    const tbody = document.getElementById('dev-'+key);
+    const tab = tabs.find(t => t.key === key);
+    const tbody = document.getElementById('dev-' + key);
     const n = tbody.querySelectorAll('tr').length + 1;
-    const empty = tabs.find(t=>t.key===key).cols.length-1;
-    const cells = [`<td>NEW${n}</td>`] + Array.from({length:empty-1}, ()=>`<td><input /></td>`) + [`<td><button class="btn-link">💾 保存</button><button class="btn-link danger">🗑 删除</button></td>`];
-    tbody.insertAdjacentHTML('beforeend', `<tr>${cells.join('')}</tr>`);
+    const prefix = key === 'chiller' ? 'C' : key === 'pump_ch' ? 'PCH' : key === 'pump_co' ? 'PCO' : 'T';
+    const typeName = tab.name;
+    const values = [prefix + String(n).padStart(3,'0'), typeName];
+    while (values.length < tab.cols.length - 1) values.push('');
+    tbody.insertAdjacentHTML('beforeend', deviceOverviewRow(tab, values, true));
+    const row = tbody.lastElementChild;
+    row.scrollIntoView({ block:'nearest', behavior:'smooth' });
+    const first = row.querySelector('input');
+    if (first) first.focus();
+    refreshDeviceCount(key);
   };
 
-  return {title:`配置设备概况 - ${projectId}`, body: `<div class="tabs">${body}</div>`, size:'modal-xl'};
+  return {title:`配置设备概况 - ${projectId}`, body:`<div class="tab-nav">${nav}</div>${panels}`, size:'modal-full'};
+}
+
+function deviceOverviewRow(tab, values, isNew) {
+  const cells = values.map((v, idx) => {
+    if (idx === 0) return `<td class="col-id">${v}</td>`;
+    if (idx === 1) return `<td>${v}</td>`;
+    if (tab.key === 'chiller' && idx === 2) {
+      return `<td><select>${COOLER_TYPES.map(x => `<option ${x===v?'selected':''}>${x}</option>`).join('')}</select></td>`;
+    }
+    return `<td><input value="${v}" placeholder="${isNew?'请输入':''}" /></td>`;
+  }).join('');
+  return `<tr>${cells}
+    <td class="col-actions">
+      <button class="btn btn-success btn-sm" onclick="toast('设备已保存','success')">保存</button>
+      <button class="btn btn-default btn-sm" onclick="removeDeviceRow(this)">删除</button>
+    </td></tr>`;
+}
+
+function removeDeviceRow(btn) {
+  const tr = btn.closest('tr');
+  const tbody = tr.parentElement;
+  tr.remove();
+  const key = tbody.id.replace('dev-', '');
+  refreshDeviceCount(key);
+}
+
+function refreshDeviceCount(key) {
+  const tbody = document.getElementById('dev-' + key);
+  if (!tbody) return;
+  const count = tbody.querySelectorAll('tr').length;
+  const panel = tbody.closest('.tab-content');
+  const badge = panel && panel.querySelector('.sub-count');
+  if (badge) badge.textContent = `共 ${count} 台设备`;
+  const tabEl = document.querySelector(`.tab[data-tab="${key}"] .tab-count`);
+  if (tabEl) tabEl.textContent = count;
 }
 
 /* ================= HISTORY MODAL ================= */
@@ -772,15 +832,41 @@ function deviceRunningDetailModal(hid) {
       ['T002','冷却塔',1,12,41,32.6,27.9,235,35,55,27.5,26.8,30,60],
     ]},
   ];
-  const body = tabs.map((t,i) => `<div class="tab ${i===0?'active':''}" data-tab="${t.key}">${t.name}</div>`).join('') +
-    tabs.map((t,i) => `<div class="tab-content ${i===0?'active':''}" data-tab-content="${t.key}"><table class="editable-table"><thead><tr>${t.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>
-      ${t.rows.map(r => `<tr>${r.map((v,idx) => {
-        if (idx === 0 || idx === 1) return `<td>${v}</td>`;
-        if (idx === 2) return `<td><span class="status-tag ${v?'status-on':'status-off'}">${v?'运行':'停止'}</span></td>`;
-        return `<td><input value="${v}" /></td>`;
-      }).join('')}<td><button class="btn-link">💾 保存</button><button class="btn-link danger">🗑 删除</button></td></tr>`).join('')}
-    </tbody></table></div>`).join('');
-  return {title:`设备运行明细 - ${hid}`, body: `<div class="tabs">${body}</div>`, size:'modal-xl'};
+
+  const nav = tabs.map((t,i) => `<div class="tab ${i===0?'active':''}" data-tab="${t.key}">${t.name}<span class="tab-count">${t.rows.length}</span></div>`).join('');
+
+  const panels = tabs.map((t,i) => `
+    <div class="tab-content ${i===0?'active':''}" data-tab-content="${t.key}">
+      <div class="sub-table-header">
+        <div class="sub-table-title">${t.name} 运行明细<span class="sub-count">共 ${t.rows.length} 台设备</span></div>
+        <button class="btn btn-default btn-sm" onclick="toast('已保存全部设备运行数据','success')">全部保存</button>
+      </div>
+      <div class="table-scroll">
+        <table class="editable-table">
+          <thead><tr>${t.cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+          <tbody>
+            ${t.rows.map(r => deviceRunningRow(r)).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `).join('');
+
+  return {title:`设备运行明细 - ${hid}`, body:`<div class="tab-nav">${nav}</div>${panels}`, size:'modal-full'};
+}
+
+function deviceRunningRow(values) {
+  const cells = values.map((v, idx) => {
+    if (idx === 0) return `<td class="col-id">${v}</td>`;
+    if (idx === 1) return `<td>${v}</td>`;
+    if (idx === 2) return `<td><span class="status-tag ${v ? 'status-on' : 'status-off'}">${v ? '运行' : '停止'}</span></td>`;
+    return `<td><input value="${v}" /></td>`;
+  }).join('');
+  return `<tr>${cells}
+    <td class="col-actions">
+      <button class="btn btn-success btn-sm" onclick="toast('运行数据已保存','success')">保存</button>
+      <button class="btn btn-default btn-sm" onclick="this.closest('tr').remove();toast('已删除该行','success')">删除</button>
+    </td></tr>`;
 }
 
 /* ================= ALGO CREATE TYPE ================= */
@@ -1146,6 +1232,7 @@ function strategyControlDetailModal(id) {
     size:'modal-xl',
     body:`
       <div class="section-note">该策略将自动下发到以下设备（模拟示例，逐台列按实际台数展开）</div>
+      <div class="table-scroll">
       <table class="editable-table">
         <thead><tr><th>设备类别</th><th>设备ID</th><th>启停状态</th><th>频率设定 (Hz)</th><th>命令下发状态</th></tr></thead>
         <tbody>
@@ -1157,6 +1244,7 @@ function strategyControlDetailModal(id) {
           `).join('')}
         </tbody>
       </table>
+      </div>
     `
   };
 }
