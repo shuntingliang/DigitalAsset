@@ -1,0 +1,2379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智慧能源管理 - 单独算法管理（非集成）</title>
+<style>
+  *{box-sizing:border-box}
+  :root{
+    --bg:#f2f5fb;
+    --card:#ffffff;
+    --line:#e5eaf2;
+    --line-2:#eef2f8;
+    --text:#1c2839;
+    --muted:#78859a;
+    --primary:#2f6bff;
+    --primary-dark:#1d51e0;
+    --navy:#0b1730;
+    --green:#0fa36b;
+    --amber:#e09a17;
+    --red:#e2494f;
+    --violet:#7c5cff;
+    --cyan:#0aa2c0;
+    --radius:14px;
+    --shadow:0 2px 6px rgba(19,37,73,.05), 0 14px 30px -20px rgba(19,37,73,.28);
+  }
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);color:var(--text);font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:#c9d4e5;border-radius:6px;border:2px solid transparent;background-clip:content-box}
+  ::-webkit-scrollbar-thumb:hover{background:#adbdd6;background-clip:content-box}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  /* ============ Topbar ============ */
+  .topbar{
+    height:60px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 22px;position:sticky;top:0;z-index:50;
+    box-shadow:0 1px 0 rgba(19,37,73,.02);
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{
+    width:38px;height:38px;border-radius:11px;flex:0 0 auto;
+    background:linear-gradient(135deg,#3f82ff,#1f4fe0);
+    display:grid;place-items:center;
+    box-shadow:0 8px 18px -8px rgba(47,107,255,.8);
+  }
+  .brand-title{font-size:15px;font-weight:700;letter-spacing:.3px;line-height:1.2}
+  .brand-sub{font-size:10px;color:#94a1b6;letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+  .topbar-right{display:flex;align-items:center;gap:16px}
+  .tenant-tag{
+    display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#2b5bd7;
+    background:#eef3ff;border:1px solid #dae5ff;padding:6px 12px;border-radius:999px;
+    font-weight:500;
+  }
+  .tenant-tag .dot{width:6px;height:6px;border-radius:50%;background:#2f6bff;box-shadow:0 0 0 3px rgba(47,107,255,.15)}
+  .user{display:flex;align-items:center;gap:10px;padding-left:16px;border-left:1px solid var(--line)}
+  .avatar{
+    width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg,#5a8dff,#7a5cff);
+    color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600;
+    box-shadow:0 4px 10px -4px rgba(80,90,220,.7);
+  }
+  .user-name{font-size:13px;font-weight:600;line-height:1.25}
+  .user-role{font-size:11px;color:#8d9ab0;margin-top:2px}
+
+  /* ============ Layout / Sidebar ============ */
+  .layout{display:flex;align-items:flex-start;min-height:calc(100vh - 60px);min-width:1120px}
+  .sidebar{
+    width:252px;flex:0 0 252px;position:sticky;top:60px;
+    height:calc(100vh - 60px);
+    background:
+      radial-gradient(130% 45% at 0% 0%, rgba(48,102,210,.35) 0%, transparent 62%),
+      linear-gradient(180deg,#0b1730 0%,#0d1c3a 55%,#0a1428 100%);
+    padding:18px 14px 16px;display:flex;flex-direction:column;overflow:auto;
+  }
+  .side-caption{
+    font-size:10.5px;letter-spacing:.16em;color:#6d82a6;text-transform:uppercase;
+    padding:2px 12px 14px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:14px;
+  }
+  .menu{display:flex;flex-direction:column;gap:6px}
+  .menu-item{
+    display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;
+    color:#a3b4cf;cursor:pointer;position:relative;border:1px solid transparent;
+    background:transparent;text-align:left;width:100%;transition:.18s;
+  }
+  .menu-item:hover{background:rgba(255,255,255,.05);color:#e6eefc}
+  .layer-no{
+    width:34px;height:34px;border-radius:10px;flex:0 0 auto;
+    background:rgba(255,255,255,.06);color:#8fa5c6;
+    font-size:12px;font-weight:600;letter-spacing:.04em;
+    display:grid;place-items:center;transition:.18s;
+    border:1px solid rgba(255,255,255,.05);
+  }
+  .menu-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .menu-title{font-size:13.5px;font-weight:600;letter-spacing:.2px;white-space:nowrap}
+  .menu-layer{font-size:10.5px;color:#63789b;letter-spacing:.06em}
+  .menu-arrow{margin-left:auto;opacity:0;transition:.18s;color:#7fa5ff}
+  .menu-item:hover .menu-arrow{opacity:.6}
+  .menu-item.active{
+    background:linear-gradient(90deg,rgba(47,107,255,.30),rgba(47,107,255,.06));
+    border-color:rgba(96,146,255,.35);color:#fff;
+    box-shadow:inset 0 0 18px rgba(71,124,255,.12);
+  }
+  .menu-item.active .layer-no{
+    background:linear-gradient(135deg,#4f8dff,#2360f5);color:#fff;
+    border-color:rgba(255,255,255,.18);
+    box-shadow:0 6px 14px -4px rgba(47,107,255,.65);
+  }
+  .menu-item.active .menu-layer{color:#a9c4ff}
+  .menu-item.active .menu-arrow{opacity:1}
+  .side-card{
+    margin-top:auto;padding:13px 14px;border-radius:12px;
+    background:linear-gradient(145deg,rgba(48,96,190,.20),rgba(20,40,80,.28));
+    border:1px solid rgba(108,150,240,.22);
+  }
+  .side-card-title{font-size:12px;color:#dbe7fb;display:flex;align-items:center;gap:8px;font-weight:500}
+  .pulse{width:7px;height:7px;border-radius:50%;background:#38d39f;box-shadow:0 0 0 0 rgba(56,211,159,.5);animation:pulse 2s infinite}
+  .side-card-sub{font-size:10.5px;color:#7389ab;margin-top:7px;line-height:1.55}
+  .side-foot{font-size:10px;color:#4d6285;padding:14px 4px 2px;letter-spacing:.04em}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(56,211,159,.45)}70%{box-shadow:0 0 0 7px rgba(56,211,159,0)}100%{box-shadow:0 0 0 0 rgba(56,211,159,0)}}
+
+  /* ============ Main ============ */
+  .main{flex:1;min-width:0;padding:22px 26px 44px}
+  .page-head{margin-bottom:18px;animation:fadeUp .28s ease}
+  .crumb{font-size:11.5px;color:#8b97ab;display:flex;gap:7px;align-items:center;letter-spacing:.02em}
+  .crumb .sep{color:#c4cddd}
+  .crumb .cur{color:#5d6b82}
+  .page-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-top:9px}
+  .page-title{font-size:22px;font-weight:700;margin:0;letter-spacing:.2px;line-height:1.25}
+  .page-desc{color:#7b879b;font-size:12.5px;margin:8px 0 0;max-width:780px;line-height:1.7}
+  .page-chip{
+    display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 12px;border-radius:999px;
+    background:#eef3ff;border:1px solid #dbe6ff;color:#2b5bd7;font-size:11.5px;font-weight:500;
+    white-space:nowrap;margin-top:4px;
+  }
+  .page-chip i{width:6px;height:6px;border-radius:50%;background:#2f6bff}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+  /* ============ Buttons ============ */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;
+    border-radius:9px;font-size:13px;font-weight:500;border:1px solid transparent;cursor:pointer;
+    transition:.16s;white-space:nowrap;line-height:1;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:linear-gradient(135deg,#3d7bff,#2757f0);color:#fff;box-shadow:0 8px 18px -9px rgba(47,107,255,.85)}
+  .btn-primary:hover{filter:brightness(1.05);box-shadow:0 10px 22px -8px rgba(47,107,255,.9)}
+  .btn-ghost{background:#fff;border-color:#dde4ef;color:#3a4760}
+  .btn-ghost:hover{border-color:#b9c8e4;color:#1c3d86;background:#f8fbff}
+  .btn-soft{background:#eef3ff;color:#2459d8;border-color:#dbe6ff}
+  .btn-soft:hover{background:#e2ecff}
+  .btn-danger{background:linear-gradient(135deg,#f06060,#d9363e);color:#fff;box-shadow:0 8px 18px -10px rgba(217,54,62,.9)}
+  .btn-danger:hover{filter:brightness(1.04)}
+  .btn-sm{height:30px;padding:0 11px;font-size:12px;border-radius:8px}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;filter:none!important}
+
+  /* ============ Card / Toolbar / Table ============ */
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;animation:fadeUp .3s ease;
+  }
+  .toolbar{
+    display:flex;align-items:center;gap:9px;padding:15px 18px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line-2);
+    background:linear-gradient(180deg,#fff 20%,#fcfdff);
+  }
+  .search-wrap{
+    display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;
+    border:1px solid #dfe6f0;border-radius:9px;background:#fff;width:280px;
+    transition:.16s;color:#9aa7bd;
+  }
+  .search-wrap:focus-within{border-color:#93b4ff;box-shadow:0 0 0 3px rgba(47,107,255,.10);color:#5f7ec4}
+  .search-wrap input{border:0;outline:0;flex:1;font-size:13px;background:transparent;color:#26334a;min-width:0}
+  .search-wrap input::placeholder{color:#a9b4c6}
+  .spacer{flex:1}
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+  thead th{
+    background:#f7f9fd;color:#64718a;font-weight:600;font-size:12px;text-align:left;
+    padding:11px 16px;white-space:nowrap;border-bottom:1px solid var(--line);
+    letter-spacing:.02em;
+  }
+  tbody td{
+    padding:12px 16px;border-bottom:1px solid var(--line-2);
+    white-space:nowrap;color:#2a374d;font-variant-numeric:tabular-nums;
+  }
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr{transition:background .12s}
+  tbody tr:hover td{background:#f7faff}
+  .cell-strong{font-weight:600;color:#152338}
+  .cell-sub{color:#8b97ab;font-size:12px}
+  .ops-cell{display:flex;gap:12px;align-items:center;white-space:nowrap}
+  .link-btn{
+    background:none;border:0;padding:0;font-size:12.5px;color:var(--primary);
+    cursor:pointer;font-weight:500;line-height:1.4;
+  }
+  .link-btn:hover{text-decoration:underline}
+  .link-btn.danger{color:var(--red)}
+  .table-foot{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:13px 18px;border-top:1px solid var(--line-2);color:#8b97ab;font-size:12px;
+    background:#fcfdff;
+  }
+  .pager{display:flex;align-items:center;gap:6px}
+  .pager button{
+    min-width:28px;height:28px;border-radius:7px;border:1px solid #e2e8f2;background:#fff;
+    color:#66748c;font-size:12px;cursor:pointer;padding:0 8px;
+  }
+  .pager button.active{background:#eef3ff;border-color:#c9dbff;color:#2b5bd7;font-weight:600}
+  .empty{
+    padding:54px 0;text-align:center;color:#95a1b4;font-size:13px;
+  }
+  .empty svg{display:block;margin:0 auto 10px;opacity:.45}
+
+  /* ============ Tags ============ */
+  .tag{
+    display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;
+    font-size:11.5px;font-weight:500;white-space:nowrap;
+  }
+  .tag-blue{background:#eef4ff;color:#2b5bd7}
+  .tag-green{background:#e9f8f1;color:#0d8a5c}
+  .tag-amber{background:#fff4e3;color:#b4740c}
+  .tag-violet{background:#f2eeff;color:#5b41c9}
+  .tag-gray{background:#f1f4f9;color:#61708a}
+  .tag-red{background:#fdeeee;color:#c9373d}
+
+  /* ============ Modal ============ */
+  #modalRoot .overlay{
+    position:fixed;inset:0;background:rgba(9,20,42,.45);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;
+    animation:fadeIn .16s ease;
+  }
+  #modalRoot .modal{
+    background:#fff;border-radius:16px;width:min(1080px,100%);max-height:92vh;
+    display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 40px 90px -30px rgba(8,22,52,.55), 0 0 0 1px rgba(255,255,255,.6);
+    animation:pop .2s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .modal-sm{width:min(540px,100%)!important}
+  .modal-md{width:min(760px,100%)!important}
+  .modal-lg{width:min(1080px,100%)!important}
+  .modal-xl{width:min(1300px,100%)!important}
+  .modal-head{
+    padding:17px 22px;border-bottom:1px solid var(--line);
+    display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+    background:#fff;flex:0 0 auto;
+  }
+  .modal-title{font-size:16px;font-weight:700;letter-spacing:.2px;line-height:1.3}
+  .modal-sub{font-size:11.5px;color:#8b97ab;margin-top:5px;line-height:1.5}
+  .icon-btn{
+    width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:#f4f7fc;
+    color:#7d8aa0;font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center;
+    transition:.15s;flex:0 0 auto;
+  }
+  .icon-btn:hover{background:#eef2f9;color:#37455d}
+  .modal-body{padding:18px 22px 20px;overflow:auto;background:#fbfcff;flex:1 1 auto}
+  .modal-foot{
+    padding:13px 22px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:flex-end;
+    gap:10px;background:#fff;flex:0 0 auto;
+  }
+  .modal-foot .foot-hint{margin-right:auto;font-size:11.5px;color:#94a1b6}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+  body.modal-open{overflow:hidden}
+
+  /* ============ Form / Accordion ============ */
+  .form-tools{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;gap:12px}
+  .form-tools .tip{font-size:11.5px;color:#94a1b6;display:flex;align-items:center;gap:6px}
+  .form-tools .actions{display:flex;gap:6px}
+  .mini-link{
+    background:none;border:0;color:#5d7fc4;font-size:11.5px;cursor:pointer;padding:4px 7px;border-radius:6px;
+  }
+  .mini-link:hover{background:#eef3ff;color:#2b5bd7}
+  .acc{
+    background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    margin-bottom:12px;box-shadow:0 1px 2px rgba(16,32,64,.03);transition:box-shadow .18s,border-color .18s;
+  }
+  .acc.open{border-color:#dbe6fa;box-shadow:0 6px 18px -16px rgba(28,68,160,.45)}
+  .acc-head{
+    display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;user-select:none;
+    background:#fff;transition:background .15s;
+  }
+  .acc-head:hover{background:#fafcff}
+  .acc.open .acc-head{background:linear-gradient(180deg,#f7faff,#f4f8ff);border-bottom:1px solid #e8eefb}
+  .acc-idx{
+    width:30px;height:30px;border-radius:9px;flex:0 0 auto;display:grid;place-items:center;
+    background:#eef3ff;color:#3b6cdb;font-size:11px;font-weight:700;letter-spacing:.04em;
+    border:1px solid #e0eaff;
+  }
+  .acc.open .acc-idx{background:linear-gradient(135deg,#4f8dff,#2b5bd7);color:#fff;border-color:transparent;box-shadow:0 5px 12px -6px rgba(47,107,255,.8)}
+  .acc-text{min-width:0;flex:1}
+  .acc-title{font-size:13.5px;font-weight:600;color:#20304a;display:flex;align-items:center;gap:8px;letter-spacing:.1px}
+  .acc-sub{font-size:11px;color:#94a1b6;margin-top:4px;line-height:1.5}
+  .acc-count{
+    font-size:10.5px;color:#8b97ab;background:#f4f7fc;border:1px solid #ebf0f8;
+    padding:3px 8px;border-radius:999px;white-space:nowrap;flex:0 0 auto;
+  }
+  .chev{color:#a6b3c7;flex:0 0 auto;transition:transform .2s}
+  .acc.open .chev{transform:rotate(180deg);color:#6a8bd6}
+  .acc-body{display:none;padding:16px;background:#fdfeff}
+  .acc.open .acc-body{display:block}
+  .acc.locked .acc-head{background:#f8fafd}
+  .acc.locked .acc-body{background:#f8fafd}
+  .mini-tag{
+    font-size:10px;color:#8b97ab;background:#f1f4f9;border:1px solid #e8edf5;
+    padding:1px 6px;border-radius:5px;font-weight:400;
+  }
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px}
+  @media (max-width:1360px){ .grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  @media (max-width:760px){ .grid{grid-template-columns:1fr} }
+  .field{min-width:0}
+  .field label{
+    font-size:12px;color:#42506a;margin-bottom:6px;display:flex;gap:6px;align-items:baseline;
+    line-height:1.45;
+  }
+  .field .req{color:#e2494f;font-style:normal;font-weight:700;font-size:12px}
+  .field .en{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:10px;color:#a9b5c8;letter-spacing:.01em;word-break:break-all;
+  }
+  .control{
+    display:flex;align-items:center;border:1px solid #dfe6f1;border-radius:8px;background:#fff;
+    overflow:hidden;transition:.15s;height:36px;
+  }
+  .control:hover{border-color:#cbd8e9}
+  .control:focus-within{border-color:#8cb0ff;box-shadow:0 0 0 3px rgba(47,107,255,.1)}
+  .control input, .control select{
+    flex:1;min-width:0;border:0;outline:0;background:transparent;
+    padding:0 10px;font-size:13px;color:#1f2c42;height:100%;font-family:inherit;
+  }
+  .control select{cursor:pointer;appearance:none;padding-right:26px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%239aa7bc' stroke-width='1.4' stroke-linecap='round'/></svg>");
+    background-repeat:no-repeat;background-position:right 9px center;
+  }
+  .control input::placeholder{color:#b3bdcd}
+  .control .unit{
+    align-self:stretch;display:flex;align-items:center;padding:0 10px;font-size:11px;color:#8b97ab;
+    background:#f6f8fc;border-left:1px solid #edf1f7;white-space:nowrap;
+  }
+  .field.is-ro .control{background:#f6f8fc;border-color:#e8edf5}
+  .field.is-ro .control input,.field.is-ro .control select{color:#5d6b82}
+  .field.is-ro .control .unit{background:#eef2f8}
+  .field.is-ro .control select{opacity:.85}
+  .field .hint-line{font-size:10.5px;color:#a3aec0;margin-top:5px;line-height:1.4}
+
+  /* inline algorithm switch */
+  .algo-bar{
+    display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);
+    border-radius:12px;padding:13px 16px;margin-bottom:12px;flex-wrap:wrap;
+  }
+  .algo-bar .field{min-width:280px}
+  .algo-bar .field label{margin-bottom:5px}
+  .algo-note{font-size:11.5px;color:#94a1b6;flex:1;min-width:220px;line-height:1.6}
+  .algo-note b{color:#3b6cdb;font-weight:600}
+
+  /* ============ Tabs ============ */
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);padding:0 2px;flex-wrap:wrap}
+  .tab{
+    padding:9px 15px;font-size:12.5px;color:#6b7890;border-bottom:2px solid transparent;
+    cursor:pointer;font-weight:500;border-radius:8px 8px 0 0;background:none;border-top:0;border-left:0;border-right:0;
+    transition:.15s;display:inline-flex;align-items:center;gap:7px;
+  }
+  .tab:hover{color:#2b5bd7;background:#f7faff}
+  .tab.active{color:#2b5bd7;border-bottom-color:#2f6bff;background:#f4f8ff}
+  .tab .cnt{font-size:10px;background:#e8eef8;color:#7b8aa3;border-radius:999px;padding:1px 6px}
+  .tab.active .cnt{background:#dfeaff;color:#2b5bd7}
+  .pane{display:none;padding-top:14px}
+  .pane.active{display:block}
+
+  /* ============ Mini editable tables ============ */
+  .dev-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+  .dev-toolbar .info{font-size:11.5px;color:#94a1b6}
+  .mini-wrap{border:1px solid var(--line);border-radius:10px;overflow:auto;background:#fff}
+  table.mini{font-size:12px;min-width:100%}
+  table.mini thead th{padding:9px 10px;font-size:11.5px;background:#f7f9fd}
+  table.mini tbody td{padding:8px 10px;border-bottom:1px solid #f0f4fa}
+  table.mini tbody tr:last-child td{border-bottom:0}
+  table.mini tbody tr:hover td{background:#fbfdff}
+  table.mini input, table.mini select{
+    height:31px;border:1px solid #e1e8f3;border-radius:7px;padding:0 8px;
+    font-size:12px;width:100%;min-width:82px;background:#fff;color:#26334a;outline:none;font-family:inherit;
+  }
+  table.mini select{appearance:none;padding-right:22px;cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'><path d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%239aa7bc' stroke-width='1.4' stroke-linecap='round'/></svg>");
+    background-repeat:no-repeat;background-position:right 7px center;
+  }
+  table.mini input:focus, table.mini select:focus{border-color:#8cb0ff;box-shadow:0 0 0 3px rgba(47,107,255,.1)}
+  table.mini td.ro{color:#5d6b82;background:#fafcff;font-weight:500}
+  table.mini .row-ops{display:flex;gap:10px;align-items:center}
+  .status-dot{display:inline-flex;align-items:center;gap:5px;font-size:12px}
+  .status-dot i{width:6px;height:6px;border-radius:50%;display:inline-block}
+  .dot-on{background:#0fa36b;box-shadow:0 0 0 3px rgba(15,163,107,.12)}
+  .dot-off{background:#b6c0d0;box-shadow:0 0 0 3px rgba(182,192,208,.15)}
+
+  /* ============ Control blocks in strategy form ============ */
+  .control-block{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:12px}
+  .control-block-head{
+    display:flex;align-items:center;gap:12px;padding:13px 16px;
+    background:linear-gradient(180deg,#f7faff,#f4f8ff);border-bottom:1px solid #e8eefb;
+  }
+  .control-block-head .acc-idx{background:linear-gradient(135deg,#4f8dff,#2b5bd7);color:#fff;border-color:transparent}
+  .control-block-head .acc-title{flex:1}
+  .control-block-body{padding:14px 16px}
+  .control-tip{font-size:11px;color:#94a1b6;margin-bottom:12px;line-height:1.6}
+
+  /* ============ Live data ============ */
+  .live-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;
+    padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap;
+  }
+  .live-indicator{display:flex;align-items:center;gap:9px;font-size:12px;color:#42506a;font-weight:500}
+  .live-indicator .pulse{background:#2f6bff;box-shadow:0 0 0 0 rgba(47,107,255,.5)}
+  .live-time{font-size:11.5px;color:#94a1b6;font-variant-numeric:tabular-nums}
+  .live-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  @media (max-width:900px){.live-grid{grid-template-columns:repeat(2,1fr)}}
+  .live-card{
+    border:1px solid #e8edf6;border-radius:12px;padding:14px 15px;
+    background:linear-gradient(180deg,#fff,#fbfdff);position:relative;overflow:hidden;
+  }
+  .live-card::after{
+    content:"";position:absolute;right:-18px;top:-18px;width:56px;height:56px;border-radius:50%;
+    background:radial-gradient(circle,rgba(47,107,255,.10),transparent 70%);
+  }
+  .live-label{font-size:11.5px;color:#7b879b;display:flex;align-items:center;gap:6px}
+  .live-label .en{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#b0bacb}
+  .live-value{font-size:22px;font-weight:700;margin-top:9px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:#16233a}
+  .live-unit{font-size:11px;color:#93a1b6;font-weight:500;margin-left:4px}
+  .live-delta{font-size:11px;margin-top:5px;display:flex;gap:4px;align-items:center;color:#8b97ab}
+  .live-delta.up{color:#0d8a5c}
+  .live-delta.down{color:#d9363e}
+  .live-card.hl{border-color:#cfe0ff;background:linear-gradient(180deg,#f7fbff,#f2f7ff)}
+  .live-card.hl .live-value{color:#1d51e0}
+
+  /* ============ Progress / import ============ */
+  .dropzone{
+    border:1.5px dashed #c8d6ec;border-radius:12px;background:#f9fbff;padding:34px 20px;
+    text-align:center;color:#7b879b;cursor:pointer;transition:.16s;
+  }
+  .dropzone:hover{border-color:#8cb0ff;background:#f3f8ff}
+  .dropzone strong{display:block;color:#3a4760;font-size:13.5px;margin-bottom:6px}
+  .dropzone .sub{font-size:11.5px;color:#9aa7bc}
+  .dropzone .file-name{margin-top:12px;font-size:12px;color:#2b5bd7;font-weight:500}
+  .progress-wrap{margin-top:16px;display:none}
+  .progress-wrap.show{display:block}
+  .progress-track{height:8px;border-radius:999px;background:#eaf0fa;overflow:hidden}
+  .progress-bar{height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,#4f8dff,#2f6bff);transition:width .25s ease}
+  .progress-meta{display:flex;justify-content:space-between;font-size:11px;color:#8b97ab;margin-top:8px}
+  .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:640px){.form-row-2,.form-row-3{grid-template-columns:1fr}}
+
+  /* ============ Toast ============ */
+  #toastRoot{position:fixed;top:76px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:9px;align-items:center;pointer-events:none}
+  .toast{
+    display:flex;align-items:center;gap:9px;background:#132138;color:#eaf1ff;
+    padding:10px 16px;border-radius:10px;font-size:12.5px;
+    box-shadow:0 16px 36px -12px rgba(8,22,52,.6);
+    animation:toastIn .22s ease;border:1px solid rgba(255,255,255,.08);max-width:560px;
+  }
+  .toast .ico{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}
+  .toast.ok .ico{background:rgba(56,211,159,.18);color:#4ce0ae}
+  .toast.warn .ico{background:rgba(240,180,60,.18);color:#f4be5c}
+  .toast.err .ico{background:rgba(242,100,100,.18);color:#ff8e8e}
+  .toast.out{animation:toastOut .2s ease forwards}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  @keyframes toastOut{to{opacity:0;transform:translateY(-8px)}}
+
+  /* ============ Misc ============ */
+  .divider-v{width:1px;height:22px;background:var(--line);margin:0 2px}
+  .tag-inline{display:inline-flex;gap:6px;align-items:center}
+  .text-muted{color:#8b97ab}
+  .muted-strong{color:#5d6b82;font-weight:500}
+  .section-note{
+    font-size:11.5px;color:#8b97ab;background:#f7faff;border:1px solid #e8eefb;border-radius:9px;
+    padding:9px 12px;margin-bottom:12px;line-height:1.6;display:flex;gap:8px;align-items:flex-start;
+  }
+  .section-note b{color:#3b6cdb;font-weight:600}
+  .readonly-banner{
+    display:flex;align-items:center;gap:8px;background:#f5f8ff;border:1px solid #dfe9fb;
+    color:#4a6aa8;font-size:11.5px;padding:9px 13px;border-radius:9px;margin-bottom:12px;
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 20V9.4L12 3.4l8 6V20" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9.2 20v-5.2h5.6V20" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M13.4 7.8 10.5 11.6h2.2l-.7 3 2.9-3.9h-2.1l.6-2.9Z" fill="#fff"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-title">智慧能源管理</div>
+      <div class="brand-sub">Smart Energy Platform</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="tenant-tag"><span class="dot"></span>智慧园区科技</span>
+    <div class="user">
+      <div class="avatar">张</div>
+      <div>
+        <div class="user-name">张策</div>
+        <div class="user-role">租户管理员</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="side-caption">单独算法管理 · 非集成</div>
+    <nav class="menu" id="menu"></nav>
+    <div class="side-card">
+      <div class="side-card-title"><span class="pulse"></span>算法服务运行中</div>
+      <div class="side-card-sub">推理服务 · PSO 求解器 · 策略库集群正常</div>
+    </div>
+    <div class="side-foot">v1.0.0 · 原型演示环境</div>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* ======================= Utilities ======================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad2 = n => String(n).padStart(2, '0');
+const iconSearch = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.5"/><path d="m10.6 10.6 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+const iconChev = `<svg class="chev" width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3.6 6 8 10.2 12.4 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const iconEmpty = `<svg width="42" height="42" viewBox="0 0 48 48" fill="none"><rect x="7" y="12" width="34" height="27" rx="4" stroke="#b9c6da" stroke-width="1.6"/><path d="M7 20h34" stroke="#b9c6da" stroke-width="1.6"/><path d="M14 27h8M14 32h14" stroke="#cbd5e4" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+
+/* ======================= Menu ======================= */
+const MENU = [
+  { id: 'projects',   no: '01', layer: '第一层', label: '项目信息' },
+  { id: 'runs',       no: '02', layer: '第二层', label: '历史运行' },
+  { id: 'algo',       no: '03', layer: '第三层', label: '算法参数配置' },
+  { id: 'strategies', no: '04', layer: '第四层', label: '策略库' },
+  { id: 'optimal',    no: '05', layer: '第五层', label: '最优策略' }
+];
+
+/* ======================= Demo data ======================= */
+const DB = {
+  projects: [
+    { id: 'PRJ-001', name: '杭州滨江智慧产业园 A 座', area: 12000, hvac: 9500, orient: '南', wwr: 0.42, occ: 0.12, eqp: 15, light: 9 },
+    { id: 'PRJ-002', name: '上海浦东科创中心 B 栋', area: 18600, hvac: 15200, orient: '东南', wwr: 0.38, occ: 0.15, eqp: 18, light: 10 },
+    { id: 'PRJ-003', name: '苏州工业园区研发楼', area: 9800, hvac: 7600, orient: '西', wwr: 0.45, occ: 0.10, eqp: 12, light: 8 },
+    { id: 'PRJ-004', name: '南京江北新区办公综合体', area: 22400, hvac: 18900, orient: '东北', wwr: 0.35, occ: 0.14, eqp: 16, light: 9 }
+  ],
+  runs: [
+    { id: 'RUN-20261125-001', load: 1800, project: 'PRJ-001', power: 520.4, cop: 3.46, eer: 3.52, time: '2026-11-25 14:00' },
+    { id: 'RUN-20261125-002', load: 1650, project: 'PRJ-002', power: 486.2, cop: 3.39, eer: 3.45, time: '2026-11-25 13:00' },
+    { id: 'RUN-20261125-003', load: 2120, project: 'PRJ-004', power: 611.8, cop: 3.47, eer: 3.51, time: '2026-11-25 12:00' },
+    { id: 'RUN-20261124-004', load: 1380, project: 'PRJ-003', power: 421.6, cop: 3.27, eer: 3.31, time: '2026-11-24 16:00' },
+    { id: 'RUN-20261124-005', load: 1980, project: 'PRJ-001', power: 573.9, cop: 3.45, eer: 3.49, time: '2026-11-24 15:00' }
+  ],
+  algos: [
+    { id: 'AP-001', type: '能耗代理+策略生成算法', creator: '张策', ctime: '2026-11-20 10:12', updater: '张策', utime: '2026-11-24 09:30' },
+    { id: 'AP-002', type: '实时优化算法', creator: '李玥', ctime: '2026-11-19 16:45', updater: '李玥', utime: '2026-11-23 18:05' },
+    { id: 'AP-003', type: '负荷预测算法', creator: '王珩', ctime: '2026-11-18 09:26', updater: '张策', utime: '2026-11-22 11:17' },
+    { id: 'AP-004', type: '实时优化算法', creator: '张策', ctime: '2026-11-15 14:03', updater: '张策', utime: '2026-11-21 10:42' }
+  ],
+  strategies: [
+    { id: 'ST-2026-0712', name: '夏季典型日·高负荷策略', source: '算法生成', project: 'PRJ-001', type: '完整', algo: 'AP-001', creator: '张策', updater: '张策', utime: '2026-11-24 09:40' },
+    { id: 'ST-2026-0713', name: '夏季典型日·中负荷策略', source: '算法生成', project: 'PRJ-001', type: '完整', algo: 'AP-001', creator: '张策', updater: '李玥', utime: '2026-11-24 09:41' },
+    { id: 'ST-2026-0714', name: '过渡季·手动修正策略', source: '手动维护', project: 'PRJ-002', type: '初始', algo: 'AP-004', creator: '李玥', updater: '李玥', utime: '2026-11-23 17:12' },
+    { id: 'ST-2026-0715', name: '阴雨天气·节能策略', source: '文件导入', project: 'PRJ-004', type: '完整', algo: 'AP-002', creator: '王珩', updater: '张策', utime: '2026-11-22 14:06' },
+    { id: 'ST-2026-0716', name: '夜间低负荷·值班策略', source: '算法生成', project: 'PRJ-003', type: '初始', algo: 'AP-001', creator: '张策', updater: '王珩', utime: '2026-11-21 22:31' }
+  ],
+  optimal: [
+    { id: 'OS-20261126-001', project: 'PRJ-001', creator: '张策', ctime: '2026-11-26 11:20', updater: '张策', utime: '2026-11-26 11:20' },
+    { id: 'OS-20261126-002', project: 'PRJ-002', creator: '李玥', ctime: '2026-11-26 10:45', updater: '李玥', utime: '2026-11-26 10:52' },
+    { id: 'OS-20261126-003', project: 'PRJ-004', creator: '王珩', ctime: '2026-11-26 09:30', updater: '张策', utime: '2026-11-26 10:08' },
+    { id: 'OS-20261125-004', project: 'PRJ-003', creator: '张策', ctime: '2026-11-25 16:12', updater: '张策', utime: '2026-11-25 16:40' }
+  ]
+};
+DB.runs.forEach((r, i) => { r.projectLabel = projectLabel(r.project); });
+function projectLabel(pid) {
+  const p = DB.projects.find(x => x.id === pid);
+  return p ? `${p.id} ${p.name}` : pid;
+}
+function projectName(pid) {
+  const p = DB.projects.find(x => x.id === pid);
+  return p ? p.name : pid;
+}
+
+const state = {
+  page: 'projects',
+  search: { projects: '', runs: '', algo: '', strategies: '', optimal: '' }
+};
+
+/* ======================= Toast ======================= */
+function toast(msg, type = 'ok') {
+  const root = $('#toastRoot');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const mark = type === 'ok' ? '✓' : type === 'warn' ? '!' : '×';
+  el.innerHTML = `<span class="ico">${mark}</span><span>${esc(msg)}</span>`;
+  root.appendChild(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 220); }, 2400);
+}
+
+/* ======================= Modal engine ======================= */
+let modalCleanup = null;
+
+function openModal({ title, sub = '', body, footer = '', size = 'lg', onMount, cleanup }) {
+  closeModal(true);
+  const root = $('#modalRoot');
+  root.innerHTML = `
+    <div class="overlay">
+      <div class="modal modal-${size}">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">${title}</div>
+            ${sub ? `<div class="modal-sub">${sub}</div>` : ''}
+          </div>
+          <button class="icon-btn" data-close aria-label="关闭">×</button>
+        </div>
+        <div class="modal-body">${body}</div>
+        ${footer ? `<div class="modal-foot">${footer}</div>` : ''}
+      </div>
+    </div>`;
+  document.body.classList.add('modal-open');
+  const overlay = $('.overlay', root);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  $$('[data-close]', root).forEach(b => b.addEventListener('click', () => closeModal()));
+  modalCleanup = cleanup || null;
+  if (onMount) onMount(root);
+}
+
+function closeModal(silent) {
+  const root = $('#modalRoot');
+  if (modalCleanup) {
+    try { modalCleanup(); } catch (e) { /* noop */ }
+    modalCleanup = null;
+  }
+  if (!root) return;
+  root.innerHTML = '';
+  document.body.classList.remove('modal-open');
+  if (!silent) { /* nothing */ }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('#modalRoot').innerHTML) closeModal();
+});
+
+/* ======================= Form schema helpers ======================= */
+const F = (en, cn, t = 'number', u = '', d = '', ex = {}) => ({ en, cn, t, u, d, ...ex });
+const S = (en, cn, opts, d = '', ex = {}) => F(en, cn, 'select', '', d, { opts, ...ex });
+const B = (en, cn, d = 'true') => F(en, cn, 'bool', '', d);
+const sec = (title, fields, hint = '', ex = {}) => ({ title, fields, hint, ...ex });
+
+const optVal = o => Array.isArray(o) ? o[0] : o;
+const optLabel = o => Array.isArray(o) ? o[1] : o;
+
+function applyValues(sections, map) {
+  return sections.map(s => ({
+    ...s,
+    fields: s.fields.map(f => Object.prototype.hasOwnProperty.call(map, f.en) ? { ...f, d: map[f.en] } : f)
+  }));
+}
+
+function fieldHTML(f, ro) {
+  const disabled = ro ? 'disabled' : '';
+  let inner;
+  if (f.t === 'select' || f.t === 'bool') {
+    const opts = f.t === 'bool' ? [['true', '是 / True'], ['false', '否 / False']] : f.opts;
+    inner = `<select name="${esc(f.en)}" ${disabled}>${opts.map(o => `<option value="${esc(optVal(o))}" ${String(f.d) === String(optVal(o)) ? 'selected' : ''}>${esc(optLabel(o))}</option>`).join('')}</select>`;
+  } else {
+    const type = f.t === 'datetime' ? 'datetime-local' : f.t === 'text' ? 'text' : 'number';
+    const attrs = [
+      type === 'number' ? 'step="any"' : '',
+      f.min != null ? `min="${f.min}"` : '',
+      f.max != null ? `max="${f.max}"` : '',
+      ro ? 'readonly' : '',
+      f.req ? 'required' : '',
+      f.ph ? `placeholder="${esc(f.ph)}"` : ''
+    ].filter(Boolean).join(' ');
+    inner = `<input type="${type}" name="${esc(f.en)}" value="${esc(f.d)}" ${attrs}>`;
+  }
+  return `<div class="field ${ro ? 'is-ro' : ''}">
+    <label>${esc(f.cn)}${f.req ? '<i class="req">*</i>' : ''}<span class="en">${esc(f.en)}</span></label>
+    <div class="control">${inner}${f.u ? `<span class="unit">${esc(f.u)}</span>` : ''}</div>
+    ${f.hint ? `<div class="hint-line">${esc(f.hint)}</div>` : ''}
+  </div>`;
+}
+
+function renderSections(sections, ro, openCount) {
+  const openN = openCount == null ? 1 : openCount;
+  return sections.map((s, i) => {
+    const locked = ro || s.locked;
+    const open = i < openN || s.open;
+    return `<section class="acc ${open ? 'open' : ''} ${locked ? 'locked' : ''}">
+      <div class="acc-head">
+        <span class="acc-idx">${pad2(i + 1)}</span>
+        <div class="acc-text">
+          <div class="acc-title">${esc(s.title)}${s.locked ? '<span class="mini-tag">只读</span>' : ''}</div>
+          ${s.hint ? `<div class="acc-sub">${esc(s.hint)}</div>` : ''}
+        </div>
+        <span class="acc-count">${s.fields.length} 项</span>
+        ${iconChev}
+      </div>
+      <div class="acc-body"><div class="grid">${s.fields.map(f => fieldHTML(f, locked)).join('')}</div></div>
+    </section>`;
+  }).join('');
+}
+
+/* binds accordion + expand/collapse inside a container */
+function bindAccordions(root) {
+  $$('.acc-head', root).forEach(head => {
+    head.addEventListener('click', () => head.closest('.acc').classList.toggle('open'));
+  });
+  $$('[data-expand]', root).forEach(btn => {
+    btn.addEventListener('click', () => {
+      const open = btn.dataset.expand === 'all';
+      $$('.acc', root).forEach(a => a.classList.toggle('open', open));
+    });
+  });
+}
+
+function validateForm(root) {
+  let ok = true;
+  $$('input[required]', root).forEach(inp => {
+    if (!String(inp.value).trim()) {
+      ok = false;
+      inp.closest('.control').style.borderColor = '#e2494f';
+      inp.closest('.control').style.boxShadow = '0 0 0 3px rgba(226,73,79,.12)';
+    }
+  });
+  if (!ok) toast('请先填写标记为必填的字段', 'warn');
+  return ok;
+}
+
+function formToolsHTML(hint) {
+  return `<div class="form-tools">
+    <div class="tip">${hint || '带 * 为必填项，其余按算法默认值执行'}</div>
+    <div class="actions">
+      <button type="button" class="mini-link" data-expand="all">全部展开</button>
+      <button type="button" class="mini-link" data-expand="none">全部收起</button>
+    </div>
+  </div>`;
+}
+
+function openFormModal({ title, sub, sections, readonly = false, top = '', after = '', footerHint = '', size = 'lg', onSave, onMount, openCount }) {
+  const body = `${top}${formToolsHTML(readonly ? '只读模式 · 可展开查看各分组参数' : '带 * 为必填项，其余按算法默认值执行')}
+    <div class="section-wrap">${renderSections(sections, readonly, openCount)}</div>${after}`;
+  const footer = readonly
+    ? `<div class="foot-hint">只读模式 · 数据不可修改</div><button class="btn btn-ghost" data-close>关闭</button>`
+    : `<div class="foot-hint">${footerHint || '保存后立即同步至算法实例'}</div>
+       <button class="btn btn-ghost" data-close>取消</button>
+       <button class="btn btn-primary" id="modalSave">保存</button>`;
+  openModal({
+    title, sub, body, footer, size,
+    onMount(root) {
+      bindAccordions(root);
+      if (!readonly) {
+        const save = $('#modalSave', root);
+        save.addEventListener('click', () => {
+          if (!validateForm(root)) return;
+          if (onSave) onSave(root); else { closeModal(); toast('保存成功'); }
+        });
+      }
+      if (onMount) onMount(root);
+    }
+  });
+}
+
+function confirmDelete(name, onOk) {
+  openModal({
+    title: '删除确认', sub: `即将删除 ${esc(name)}，该操作不可撤销。`, size: 'sm',
+    body: `<div class="section-note" style="margin:0">删除后与该记录关联的配置将一并失效，请确认后继续。</div>`,
+    footer: `<button class="btn btn-ghost" data-close>取消</button><button class="btn btn-danger" id="delOk">确认删除</button>`,
+    onMount(root) {
+      $('#delOk', root).addEventListener('click', () => { closeModal(); onOk(); });
+    }
+  });
+}
+
+/* ======================= Common page chrome ======================= */
+function pageHead(layer, title, desc) {
+  return `<div class="page-head">
+    <div class="crumb">单独算法管理 <span class="sep">/</span> <span class="cur">${layer} · ${title}</span></div>
+    <div class="page-title-row">
+      <div>
+        <h1 class="page-title">${title}</h1>
+        <p class="page-desc">${desc}</p>
+      </div>
+      <span class="page-chip"><i></i>${layer}</span>
+    </div>
+  </div>`;
+}
+
+function toolbarHTML({ page, placeholder, actions }) {
+  return `<div class="toolbar">
+    <div class="search-wrap">${iconSearch}<input data-search="${page}" placeholder="${placeholder}" value="${esc(state.search[page])}"></div>
+    <button class="btn btn-ghost" data-act="search" data-page="${page}">检索</button>
+    <div class="spacer"></div>
+    ${actions}
+  </div>`;
+}
+
+function tableFootHTML(count) {
+  return `<div class="table-foot">
+    <span>共 ${count} 条记录</span>
+    <div class="pager"><button disabled>上一页</button><button class="active">1</button><button disabled>下一页</button></div>
+  </div>`;
+}
+
+function emptyRow(colspan) {
+  return `<tr><td colspan="${colspan}"><div class="empty">${iconEmpty}暂无匹配数据</div></td></tr>`;
+}
+/* ======================= Schemas · 项目信息 ======================= */
+const PROJECT_SECTIONS = [
+  sec('建筑信息', [
+    F('building_area', '建筑总面积', 'number', 'm²', 12000, { min: 0 }),
+    F('hvac_area', '空调服务面积', 'number', 'm²', 9500, { min: 0 }),
+    S('building_orientation', '建筑朝向', ['东', '南', '西', '北', '东南', '西南', '东北', '西北'], '南'),
+    F('window_wall_ratio', '窗墙比', 'number', '', 0.42, { min: 0, max: 1, hint: '取值范围 0 ~ 1' }),
+    F('occupancy_density', '人员密度', 'number', '人/m²', 0.12),
+    F('equipment_power_density', '设备功率密度', 'number', 'W/m²', 15),
+    F('lighting_power_density', '照明功率密度', 'number', 'W/m²', 9)
+  ], '预留：现阶段算法未读取，仅作项目档案与报表属性'),
+  sec('建筑围护', [
+    F('building_thermal_capacity', '建筑热容', 'number', 'kJ/K', 850000),
+    F('envelope_heat_transfer', '围护结构传热系数', 'number', 'W/K', 1850),
+    F('solar_gain_factor', '太阳辐射得热系数', 'number', '', 0.68),
+    F('internal_heat_gain', '内部发热基准', 'number', 'kW', 120),
+    F('U_ENVELOPE', '围护结构综合传热系数', 'number', 'W/(m²·K)', 0.52),
+    F('A_ENVELOPE', '围护结构总面积', 'number', 'm²', 5600),
+    F('A_WINDOW', '窗户总面积', 'number', 'm²', 2350),
+    F('SHGC', '玻璃太阳得热系数', 'number', '', 0.40, { min: 0, max: 1, hint: '取值范围 0 ~ 1' }),
+    F('INDOOR_SETPOINT_TEMP', '室内设定温度', 'number', '℃', 26),
+    F('BUILDING_THERMAL_TIME_CONSTANT', '建筑热惯性时间常数', 'number', 'h', 8),
+    F('INTERNAL_HEAT_GAIN_BASE', '内部发热基准(单/人)', 'number', 'W/人', 120)
+  ], '预留：现阶段算法未读取'),
+  sec('环境信息', [
+    F('t_envir_local_annual_min', '当地全年最低气温', 'number', '℃', -8),
+    F('t_envir_local_annual_max', '当地全年最高气温', 'number', '℃', 38),
+    F('t_wb_local_annual_min', '当地全年最低湿球温度', 'number', '℃', -10),
+    F('t_wb_local_annual_max', '当地全年最高湿球温度', 'number', '℃', 27.5),
+    F('RH_envir_local_avg', '当地平均相对湿度', 'number', '%', 62)
+  ], '预留：现阶段算法未读取'),
+  sec('空调系统信息', [
+    F('num_chiller', '冷水机组数量', 'number', '台', 3),
+    F('num_pump_ch', '冷冻水泵数量', 'number', '台', 3),
+    F('num_pump_co', '冷却水泵数量', 'number', '台', 3),
+    F('num_tower', '冷却塔数量', 'number', '台', 3),
+    F('delta_t_ch_default', '冷冻水设计供回水温差', 'number', '℃', 5),
+    F('delta_t_co_default', '冷却水设计供回水温差', 'number', '℃', 5),
+    F('approach_temp_default', '冷却塔设计逼近温度', 'number', '℃', 4),
+    F('delta_P_ch_design', '冷冻水设计供回水压差', 'number', 'kPa', 280, { hint: '原压差旁通设定值' }),
+    F('delta_P_ch_min', '冷冻水最小供回水压差设定', 'number', 'kPa', 120),
+    F('delta_p_co_default', '冷却水设计供回水压差', 'number', 'kPa', 180),
+    F('t_ch_supply_min', '冷冻水供水温度下限', 'number', '℃', 5.5),
+    F('t_ch_supply_max', '冷冻水供水温度上限', 'number', '℃', 9),
+    F('t_ch_return_min', '冷冻水回水温度下限', 'number', '℃', 10),
+    F('t_ch_return_max', '冷冻水回水温度上限', 'number', '℃', 15),
+    F('t_co_in_max', '冷却水进水温度上限', 'number', '℃', 32),
+    F('pump_ch_Hz_min', '冷冻泵频率下限', 'number', 'Hz', 25),
+    F('pump_ch_Hz_max', '冷冻泵频率上限', 'number', 'Hz', 50),
+    F('pump_co_Hz_min', '冷却泵频率下限', 'number', 'Hz', 25),
+    F('pump_co_Hz_max', '冷却泵频率上限', 'number', 'Hz', 50),
+    F('tower_Hz_min', '冷却塔频率下限', 'number', 'Hz', 25),
+    F('tower_Hz_max', '冷却塔频率上限', 'number', 'Hz', 50),
+    F('delta_P_worst_target', '最不利末端压差设定', 'number', 'kPa', 100),
+    F('t_worst_target', '最不利末端室内温度设定', 'number', '℃', 26),
+    F('RH_worst_target', '最不利末端室内湿度设定', 'number', '%', 60),
+    B('safety_filter_enabled', '命令级安全过滤总开关', 'true'),
+    F('max_step_pct', '单次最大调节步长', 'number', '', 10),
+    F('max_rate_per_min', '每分钟最大调节速率', 'number', '%/min', 6)
+  ], '台数为项目静态参数，创建后不可运行时修改')
+];
+
+/* ======================= Schemas · 历史运行 ======================= */
+const RUN_SECTIONS = [
+  sec('系统总指标', [
+    F('Q_load', '冷负荷', 'number', 'kW', 1800, { req: true }),
+    F('P_total', '冷源系统总电功率', 'number', 'kW', 520, { req: true }),
+    F('COP_system', '冷源系统COP（实测）', 'number', '', 3.46),
+    F('EER', '系统综合能效比', 'number', '', 3.52)
+  ], '必填，作为系统能效与策略评价基准'),
+  sec('分项功率', [
+    F('P_chiller_total', '冷水机组总电功率', 'number', 'kW', 380),
+    F('P_pump_ch_total', '冷冻水泵组总电功率', 'number', 'kW', 55),
+    F('P_pump_co_total', '冷却水泵组总电功率', 'number', 'kW', 50),
+    F('P_tower_total', '冷却塔组总电功率', 'number', 'kW', 35)
+  ], '可选，用于额定功率反推与交叉校验'),
+  sec('环境与工况', [
+    F('t_envir', '室外环境干球温度', 'number', '℃', 33.5),
+    F('RH_envir', '室外环境相对湿度', 'number', '%', 62),
+    F('t_wb', '室外湿球温度', 'number', '℃', 27.2)
+  ]),
+  sec('负荷预测可选特征', [
+    F('occupancy_rate', '人员占有率', 'number', '', 0.75, { min: 0, max: 1 }),
+    F('solar_radiation', '太阳辐射强度', 'number', 'W/m²', 620),
+    F('wind_speed', '室外风速', 'number', 'm/s', 2.4)
+  ], '仅负荷预测读取，缺失则该特征不参与训练'),
+  sec('冷冻水系统运行', [
+    F('t_ch_supply', '总干管供水温度', 'number', '℃', 7.2),
+    F('t_ch_return', '总干管回水温度', 'number', '℃', 12.1),
+    F('G_ch_total', '冷冻水系统总流量（冷源侧）', 'number', 'm³/h', 310),
+    F('delta_P_ch', '冷冻水管网供回水压差', 'number', 'kPa', 265),
+    F('p_ch_supply', '冷冻水总管供水压力', 'number', 'kPa', 420),
+    F('p_ch_return', '冷冻水总管回水压力', 'number', 'kPa', 155),
+    F('delta_P_worst', '最不利末端压差', 'number', 'kPa', 98),
+    F('t_worst', '最不利末端室内干球温度', 'number', '℃', 25.6),
+    F('RH_worst', '最不利末端室内相对湿度', 'number', '%', 58)
+  ]),
+  sec('冷却水系统运行', [
+    F('t_co_in', '冷却水系统总干管出水温度（冷却塔出水/冷凝器进水）', 'number', '℃', 30.5),
+    F('t_co_back', '冷却水系统总干管回水温度（冷凝器出水/冷却塔进水）', 'number', '℃', 35.6),
+    F('G_co_total', '冷却水系统总流量', 'number', 'm³/h', 360),
+    F('delta_P_co', '冷却水系统供回水压差', 'number', 'kPa', 175),
+    F('p_co_supply', '冷却水总管供水压力', 'number', 'kPa', 280),
+    F('p_co_return', '冷却水总管回水压力', 'number', 'kPa', 105)
+  ])
+];
+/* ======================= Schemas · 算法参数配置 ======================= */
+const ALGO_TYPES = ['能耗代理+策略生成算法', '实时优化算法', '负荷预测算法'];
+
+const ENERGY_SECTIONS = [
+  sec('能耗代理模型', [
+    F('model_n_estimators', '基学习器数量', 'number', '棵', 300),
+    F('model_max_depth', '模型最大深度', 'number', '层', 18),
+    F('model_min_samples_split', '内部节点分裂最小样本数', 'number', '个', 4),
+    F('model_min_samples_leaf', '叶节点最小样本数', 'number', '个', 2),
+    S('model_max_features', '单次分裂可选特征数', [['sqrt', 'sqrt（平方根）'], ['log2', 'log2'], ['float', 'float（比例）']], 'sqrt'),
+    B('model_bootstrap', '是否使用样本重采样', 'true'),
+    F('model_max_samples', '重采样子样本比例', 'number', '', 0.8),
+    F('train_test_split', '训练/测试划分比例', 'number', '', 0.8),
+    F('random_state', '随机种子', 'number', '', 42),
+    F('min_train_samples', '最小训练样本数', 'number', '个', 500)
+  ], 'RandomForest 残差模型参数'),
+  sec('模型验收与替换', [
+    F('rmse_threshold', 'RMSE达标阈值', 'number', 'kW', 25),
+    F('mape_threshold', 'MAPE达标阈值', 'number', '%', 8),
+    F('r2_threshold', 'R²达标阈值', 'number', '', 0.92),
+    F('cv_rmse_threshold', '交叉验证RMSE阈值', 'number', '%', 10),
+    F('r2_tolerance', 'R²劣化容差', 'number', '', 0.03),
+    F('mape_tolerance', 'MAPE劣化容差', 'number', '%', 3)
+  ], '新模型需同时满足达标阈值与劣化容差才可替换线上模型'),
+  sec('策略寻优（PSO）', [
+    F('optimizer_population_size', '粒子群规模', 'number', '个', 40),
+    F('optimizer_max_iterations', '最大迭代次数', 'number', '次', 120),
+    F('optimizer_inertia_weight', '惯性权重 w', 'number', '', 0.72),
+    F('optimizer_cognitive_coeff', '认知系数 c1', 'number', '', 1.5),
+    F('optimizer_social_coeff', '社会系数 c2', 'number', '', 1.5),
+    F('optimizer_convergence_threshold', '收敛阈值', 'number', '', 0.0001),
+    F('optimizer_random_state', 'PSO随机种子', 'number', '', 42),
+    F('optimizer_n_restarts', '重启次数', 'number', '次', 3),
+    F('optimizer_n_robust_samples', '鲁棒采样次数', 'number', '次', 5),
+    F('optimizer_inertia_weight_end', '惯性权重衰减下限', 'number', '', 0.4),
+    F('optimizer_stagnation_patience', '停滞重启阈值', 'number', '轮', 15),
+    F('optimizer_t_ch_supply_window', '供水温度跟踪窗口', 'number', '℃', 0.5)
+  ]),
+  sec('工况网格', [
+    S('grid_q_load_mode', '冷负荷网格-生成方式', [['capacity_based', 'capacity_based 按容量派生'], ['manual', 'manual 手动指定']], 'capacity_based'),
+    F('grid_q_load_min', '冷负荷网格-下限', 'number', 'kW', 300, { ph: '留空自动派生' }),
+    F('grid_q_load_max', '冷负荷网格-上限', 'number', 'kW', 2400, { ph: '留空自动派生' }),
+    F('grid_q_load_step_ratio', '冷负荷网格-步长比例', 'number', '', 0.1),
+    F('grid_q_load_step', '冷负荷网格-步长', 'number', 'kW', 100),
+    F('grid_t_envir_min', '室外干球网格-下限', 'number', '℃', 24),
+    F('grid_t_envir_max', '室外干球网格-上限', 'number', '℃', 38),
+    F('grid_t_envir_step', '室外干球网格-步长', 'number', '℃', 1),
+    F('grid_t_wb_min', '室外湿球网格-下限', 'number', '℃', 18),
+    F('grid_t_wb_max', '室外湿球网格-上限', 'number', '℃', 28),
+    F('grid_t_wb_step', '室外湿球网格-步长', 'number', '℃', 1),
+    F('grid_t_ch_supply_min', '供水温度网格-下限', 'number', '℃', 6),
+    F('grid_t_ch_supply_max', '供水温度网格-上限', 'number', '℃', 9),
+    F('grid_t_ch_supply_step', '供水温度网格-步长', 'number', '℃', 0.5),
+    F('grid_delta_p_ch_min', '冷冻水压差网格-下限', 'number', 'kPa', 150),
+    F('grid_delta_p_ch_max', '冷冻水压差网格-上限', 'number', 'kPa', 300),
+    F('grid_delta_p_ch_step', '冷冻水压差网格-步长', 'number', 'kPa', 25),
+    F('grid_delta_t_ch_min', '供回水温差网格-下限', 'number', '℃', 3),
+    F('grid_delta_t_ch_max', '供回水温差网格-上限', 'number', '℃', 6),
+    F('grid_delta_t_ch_step', '供回水温差网格-步长', 'number', '℃', 0.5),
+    B('grid_rh_envir_enabled', '室外湿度网格-是否启用', 'false'),
+    F('grid_rh_envir_min', '室外湿度网格-下限', 'number', '%', 30),
+    F('grid_rh_envir_max', '室外湿度网格-上限', 'number', '%', 80),
+    F('grid_rh_envir_step', '室外湿度网格-步长', 'number', '%', 10),
+    S('grid_weather_preset', '气象季节配对-气候分区', [
+      ['none', 'none 不启用'], ['severe_cold', 'severe_cold 严寒'], ['cold', 'cold 寒冷'],
+      ['hot_summer_cold_winter', 'hot_summer_cold_winter 夏热冬冷'],
+      ['hot_summer_warm_winter', 'hot_summer_warm_winter 夏热冬暖'],
+      ['temperate', 'temperate 温和']
+    ], 'hot_summer_cold_winter')
+  ], '全部为单值参数，留空 = 算法按铭牌容量 / 气象标准自动派生；后端适配层保存时拼装为嵌套 condition_grid'),
+  sec('建库门槛与容量约束', [
+    F('envelope_min_support', '工况点邻域最少支撑样本数', 'number', '个', 8),
+    F('chiller_capacity_safety_factor', '冷机容量安全系数', 'number', '', 1.1)
+  ]),
+  sec('策略库重建判据', [
+    F('rebuild_max_age_days', '库龄重建阈值', 'number', '天', 90),
+    F('rebuild_min_interval_days', '最小重建间隔', 'number', '天', 14),
+    F('rebuild_new_sample_ratio', '新增样本占比重建阈值', 'number', '', 0.2),
+    F('rebuild_eer_drift_threshold', 'EER漂移重建阈值', 'number', '', 0.08),
+    F('rebuild_drift_sustain_days', '漂移持续天数', 'number', '天', 7),
+    B('rebuild_inherit_rl_rows', 'RL经验继承开关', 'false'),
+    F('rebuild_inherit_eer_tolerance', 'RL经验继承EER容差', 'number', '', 0.03),
+    F('rebuild_inherit_max_rows', 'RL经验单次继承上限', 'number', '行', 500)
+  ], '按项目运维节奏与设备衰减速度调整')
+];
+
+function pidSection(title, keys, defaults) {
+  const labels = ['比例系数', '积分时间', '微分时间', '执行周期', '单次调整限幅'];
+  const units = ['', 's', 's', 's', 'Hz'];
+  return sec(title, keys.map((k, i) => F(k, labels[i], 'number', units[i], defaults[i])));
+}
+
+const REALTIME_SECTIONS = [
+  sec('KNN', [
+    F('deadline_q', 'KNN冷负荷比对盲区权重', 'number', '', 0.30),
+    F('deadline_t_envir', 'KNN环境温度盲区权重', 'number', '', 0.20),
+    F('deadline_rh_envir', 'KNN湿度盲区权重', 'number', '', 0.15),
+    F('deadline_t_chilling_out', 'KNN供水温度盲区权重', 'number', '', 0.20),
+    F('deadline_g_chilling_user', 'KNN流量盲区权重', 'number', '', 0.10),
+    F('deadline_delta_p_bypass_chilling', 'KNN压差盲区权重', 'number', '', 0.05),
+    F('k1_target', 'KNN第一层目标策略数', 'number', '条', 200),
+    F('k1_max_iter', 'KNN第一层最大迭代次数', 'number', '次', 2000),
+    F('k2_target', 'KNN第二层目标策略数', 'number', '条', 100),
+    F('k2_max_iter', 'KNN第二层最大迭代次数', 'number', '次', 1000),
+    F('k3_target', 'KNN第三层目标策略数', 'number', '条', 50),
+    F('k3_max_iter', 'KNN第三层最大迭代次数', 'number', '次', 500)
+  ], '三层近邻检索：逐层收敛候选策略集'),
+  sec('修正参数', [
+    F('g_chilling_min_correction_factor', '流量修正系数', 'number', '', 0.95),
+    F('delta_p_chilling_min_correction_factor', '压差修正系数', 'number', '', 0.90),
+    F('delta_t_accuracy', '温度迭代步长', 'number', '℃', 0.1)
+  ]),
+  sec('最不利末端修正', [
+    F('ch_worst_correction_p1', '压差修正系数1(压差控制)', 'number', '', 0.50),
+    F('ch_worst_correction_t1', '温度修正系数1(压差控制)', 'number', '℃', 0.30),
+    F('ch_worst_correction_t2', '回水温度修正系数1(压差控制)', 'number', '℃', 0.20),
+    F('ch_worst_correction_rh1', '湿度修正系数1(压差控制)', 'number', '%', 3),
+    F('ch_worst_correction_p2', '压差修正系数2(温差控制)', 'number', '', 0.40),
+    F('ch_worst_correction_t2_2', '温度修正系数2(温差控制)', 'number', '℃', 0.25),
+    F('ch_worst_correction_t3', '回水温度修正系数2(温差控制)', 'number', '℃', 0.20),
+    F('ch_worst_correction_rh2', '湿度修正系数2(温差控制)', 'number', '%', 2),
+    F('ch_worst_correction_t4', '回水温度修正(供水温度控制)', 'number', '℃', 0.15),
+    F('ch_worst_correction_rh3', '湿度修正(供水温度控制)', 'number', '%', 2),
+    F('co_correction_t1', '冷却水温度修正系数', 'number', '℃', 0.30)
+  ], '无末端传感器时对应纠偏项自动跳过'),
+  sec('安全过滤器', [
+    B('safety_filter_enabled', '命令级安全过滤开关', 'true'),
+    F('max_step_pct', '单次变化幅度上限', 'number', '', 10),
+    F('max_rate_per_min', '每分钟变化速率上限', 'number', '%/min', 6)
+  ], '频率边界不在此处配置，见项目信息 / 设备概况'),
+  sec('调度配置与接口治理', [
+    B('scheduler_enabled', '自动定时优化开关', 'true'),
+    F('run_interval', '定时优化执行间隔', 'number', 's', 60),
+    F('optimize_timeout_s', '单次优化等待上限', 'number', 's', 8),
+    F('idempotent_ttl_s', '相同请求体结果缓存有效期', 'number', 's', 30),
+    F('rate_limit_max_requests', '单IP限流窗口内最大请求数', 'number', '次', 120),
+    F('rate_limit_window_s', '限流窗口长度', 'number', 's', 60)
+  ]),
+  sec('RL探索', [
+    F('exploration_prob', 'ε-greedy探索概率', 'number', '', 0.10),
+    F('exploration_duration', '探索等待时长', 'number', 's', 300),
+    F('base_exploration_time', '动态探索-基础时间', 'number', 's', 180),
+    F('per_chiller_increment', '每台主机增量', 'number', 's', 60),
+    F('min_exploration_time', '最小探索时间', 'number', 's', 120),
+    F('max_exploration_time', '最大探索时间', 'number', 's', 900),
+    F('rl_eer_improvement_threshold', 'EER提升阈值', 'number', '', 0.02),
+    F('rl_time_elapsed_ratio', '时间达标比例', 'number', '', 0.80),
+    F('eer_improve_margin', 'EER变化裕度', 'number', '', 0.005)
+  ]),
+  sec('RL扰动范围', [
+    F('temp_exploration_range', '供水温度扰动范围', 'number', '℃', 0.30),
+    F('pump_ch_exploration_range', '冷冻泵频率扰动范围', 'number', '比例', 0.05),
+    F('pump_co_exploration_range', '冷却泵频率扰动范围', 'number', '比例', 0.05),
+    F('tower_exploration_range', '冷却塔频率扰动范围', 'number', '比例', 0.05)
+  ]),
+  sec('RL Q-table', [
+    F('rl_q_q_load_min', 'Q表冷负荷最小值', 'number', 'kW', 300),
+    F('rl_q_q_load_max', 'Q表冷负荷最大值', 'number', 'kW', 2400),
+    F('rl_q_q_load_bins', 'Q表冷负荷等分数', 'number', '个', 12),
+    F('rl_q_t_chilling_min', 'Q表供水温度最小值', 'number', '℃', 6),
+    F('rl_q_t_chilling_max', 'Q表供水温度最大值', 'number', '℃', 9),
+    F('rl_q_t_chilling_bins', 'Q表供水温度等分数', 'number', '个', 6),
+    F('rl_q_g_chilling_min', 'Q表冷冻水流量最小值', 'number', 'm³/h', 120),
+    F('rl_q_g_chilling_max', 'Q表冷冻水流量最大值', 'number', 'm³/h', 400),
+    F('rl_q_g_chilling_bins', 'Q表冷冻水流量等分数', 'number', '个', 6),
+    F('rl_q_delta_p_min', 'Q表压差最小值', 'number', 'kPa', 100),
+    F('rl_q_delta_p_max', 'Q表压差最大值', 'number', 'kPa', 320),
+    F('rl_q_delta_p_bins', 'Q表压差等分数', 'number', '个', 6),
+    F('rl_q_t_envir_min', 'Q表环境温度最小值', 'number', '℃', 20),
+    F('rl_q_t_envir_max', 'Q表环境温度最大值', 'number', '℃', 40),
+    F('rl_q_t_envir_bins', 'Q表环境温度等分数', 'number', '个', 8),
+    F('rl_q_rh_envir_min', 'Q表环境湿度最小值', 'number', '%', 30),
+    F('rl_q_rh_envir_max', 'Q表环境湿度最大值', 'number', '%', 90),
+    F('rl_q_rh_envir_bins', 'Q表环境湿度等分数', 'number', '个', 6)
+  ]),
+  sec('RL探索边界', [
+    F('rl_temp_min', 'RL供水温度探索最小', 'number', '℃', 6),
+    F('rl_temp_max', 'RL供水温度探索最大', 'number', '℃', 9),
+    F('rl_delta_t_ch_min', 'RL冷冻水温差探索最小', 'number', '℃', 3),
+    F('rl_delta_t_ch_max', 'RL冷冻水温差探索最大', 'number', '℃', 6),
+    F('rl_delta_t_co_min', 'RL冷却水温差探索最小', 'number', '℃', 4),
+    F('rl_delta_t_co_max', 'RL冷却水温差探索最大', 'number', '℃', 6),
+    F('rl_tower_min', 'RL冷却塔出水温度探索最小', 'number', '℃', 26),
+    F('rl_tower_max', 'RL冷却塔出水温度探索最大', 'number', '℃', 32),
+    F('rl_delta_p_min', 'RL供回水压差探索最小', 'number', 'kPa', 120),
+    F('rl_delta_p_max', 'RL供回水压差探索最大', 'number', 'kPa', 300),
+    F('rl_delta_p_exploration_range', 'RL压差探索幅度', 'number', 'kPa', 20)
+  ]),
+  sec('PID总控', [
+    S('label_pid', 'PID使能开关', [['1', '1 = 启用'], ['0', '0 = 跳过']], '1'),
+    F('dt_sampling', 'PID采样时间', 'number', 's', 5)
+  ]),
+  pidSection('PID-冷冻水泵', ['kp', 'ti', 'td', 'time_constant', 'frequency_range'], [1.2, 120, 15, 30, 2]),
+  pidSection('PID-冷却水泵', ['kp_cooling_pid', 'ti_cooling_pid', 'td_cooling_pid', 'time_constant_cooling', 'frequency_range_cooling'], [1.0, 150, 20, 30, 2]),
+  pidSection('PID-冷却塔', ['kp_tower_pid', 'ti_tower_pid', 'td_tower_pid', 'time_constant_tower', 'frequency_range_tower'], [0.8, 180, 20, 45, 2.5]),
+  pidSection('PID-压差', ['kp_pressure_pid', 'ti_pressure_pid', 'td_pressure_pid', 'time_constant_pressure', 'frequency_range_pressure'], [1.1, 90, 10, 20, 1.5])
+];
+
+const FORECAST_SECTIONS = [
+  sec('模型配置', [
+    S('model_primary', '主选模型', [['xgboost', 'xgboost'], ['lightgbm', 'lightgbm'], ['random_forest', 'random_forest']], 'xgboost'),
+    S('model_fallback_1', '备用模型1（按序回退）', [['xgboost', 'xgboost'], ['lightgbm', 'lightgbm'], ['random_forest', 'random_forest']], 'lightgbm'),
+    S('model_fallback_2', '备用模型2（按序回退）', [['xgboost', 'xgboost'], ['lightgbm', 'lightgbm'], ['random_forest', 'random_forest']], 'random_forest')
+  ], '主模型不可用时按备用顺序自动回退'),
+  sec('时序粒度', [
+    F('feature_window_hours', '特征窗口时长', 'number', 'h', 24),
+    F('min_inference_rows', '推理历史窗口最小行数', 'number', '行', 48),
+    F('min_inference_hours', '推理历史窗口最小时长', 'number', 'h', 12),
+    F('min_train_samples', '训练最小样本数', 'number', '行', 720)
+  ]),
+  sec('预测配置', [
+    F('predict_horizon_hours', '预测时域', 'number', 'h', 24),
+    S('predict_mode', '预测模式', [['point', '点预测'], ['quantile', '分位数预测'], ['both', '点预测 + 分位数']], 'quantile'),
+    F('quantiles', '分位数列表', 'text', '', '0.1, 0.5, 0.9', { ph: '逗号分隔' }),
+    B('quantile_horizon_inflation', '分位数区间随步长膨胀', 'true')
+  ]),
+  sec('训练参数', [
+    F('history_days', '历史训练数据天数', 'number', '天', 180),
+    F('train_test_split', '训练/测试分割比例', 'number', '', 0.8),
+    F('validation_frac', '验证集占比', 'number', '', 0.1)
+  ]),
+  sec('XGBoost参数', [
+    F('xgb_n_estimators', '树数量上限', 'number', '棵', 500),
+    F('xgb_max_depth', '树最大深度', 'number', '层', 8),
+    F('xgb_learning_rate', '学习率', 'number', '', 0.05),
+    F('xgb_subsample', '样本采样率', 'number', '', 0.8),
+    F('xgb_colsample_bytree', '特征采样率', 'number', '', 0.8),
+    F('xgb_min_child_weight', '叶节点最小样本权重', 'number', '', 3),
+    F('xgb_reg_alpha', 'L1正则系数', 'number', '', 0.1),
+    F('xgb_reg_lambda', 'L2正则系数', 'number', '', 1.0),
+    F('xgb_early_stopping', '早停轮数', 'number', '轮', 50)
+  ]),
+  sec('模型验收', [
+    F('mape_threshold', 'wMAPE达标阈值', 'number', '%', 8),
+    F('r2_threshold', 'R²达标阈值', 'number', '', 0.90),
+    F('overfit_gap_threshold', '过拟合gap阈值', 'number', '', 0.15),
+    F('mape_min_abs_load', 'MAPE近零过滤阈值', 'number', 'kW', 50),
+    F('operating_min_load', '运行时段负荷下限', 'number', 'kW', 100)
+  ]),
+  sec('降级判定', [
+    F('max_staleness_hours', '历史窗口最大允许断档', 'number', 'h', 6),
+    F('stop_row_drop_warn_ratio', '停机行剔除占比告警阈值', 'number', '', 0.3),
+    B('weather_synthetic_degraded', '合成气象标记为降级', 'true')
+  ]),
+  sec('预测-实测对账', [
+    B('accuracy_tracking_enabled', '预测-实测对账开关', 'true'),
+    F('accuracy_window_size', '对账滚动窗口样本数', 'number', '行', 168),
+    F('drift_alert_frames', '漂移告警连续帧数', 'number', '帧', 6)
+  ])
+];
+
+const ALGO_SCHEMAS = {
+  '能耗代理+策略生成算法': ENERGY_SECTIONS,
+  '实时优化算法': REALTIME_SECTIONS,
+  '负荷预测算法': FORECAST_SECTIONS
+};
+/* ======================= Schemas · 策略库 ======================= */
+function getStrategySections() {
+  const projOpts = DB.projects.map(p => [p.id, `${p.id} · ${p.name}`]);
+  const algoOpts = DB.algos.map(a => [a.id, `${a.id} · ${a.type}`]);
+  return [
+    sec('基础信息', [
+      F('strategy_name', '策略编号 / 标识', 'text', '', 'STR-2026-007', { req: true }),
+      S('season', '策略适用季节', ['夏季', '过渡季', '冬季', '全年'], '夏季'),
+      S('strategy_source', '策略来源', ['手动维护', '文件导入', '算法生成'], '算法生成'),
+      S('project_id', '所属项目', projOpts, DB.projects[0].id),
+      S('strategy_type', '策略类型', ['初始', '完整'], '完整'),
+      S('optimization_algorithm_id', '使用优化算法参数', algoOpts, DB.algos[0].id)
+    ]),
+    sec('工况匹配参数', [
+      F('Q_load', '冷负荷', 'number', 'kW', 1800),
+      F('t_ch_supply', '冷冻水供水温度', 'number', '℃', 7.2),
+      F('t_ch_return', '冷冻水回水温度', 'number', '℃', 12.0),
+      F('G_ch_user', '用户侧冷冻水流量', 'number', 'm³/h', 320),
+      F('delta_P_ch', '冷冻水系统供回水压差', 'number', 'kPa', 265),
+      F('t_envir', '室外环境干球温度', 'number', '℃', 33.5),
+      F('RH_envir', '室外环境相对湿度', 'number', '%', 62),
+      F('t_wb', '室外湿球温度', 'number', '℃', 27.2)
+    ], '用于 KNN 三层工况匹配与策略检索'),
+    sec('冷却水系统工况', [
+      F('t_co_in', '冷却水进水温度', 'number', '℃', 30.5),
+      F('t_co_back', '冷却水回水温度', 'number', '℃', 35.6),
+      F('G_co_total', '冷却水系统总流量', 'number', 'm³/h', 360),
+      F('delta_P_co', '冷却水系统供回水压差', 'number', 'kPa', 175)
+    ]),
+    sec('系统性能指标', [
+      F('P_total', '冷源系统总电功率', 'number', 'kW', 520.4),
+      F('EER', '系统综合能效比', 'number', '', 3.52)
+    ], '策略评估与质量权重的计算依据'),
+    sec('分项功率', [
+      F('P_chiller_total', '冷机总功率', 'number', 'kW', 380),
+      F('P_pump_ch_total', '冷冻泵总功率', 'number', 'kW', 55),
+      F('P_pump_co_total', '冷却泵总功率', 'number', 'kW', 50),
+      F('P_tower_total', '冷却塔总功率', 'number', 'kW', 35)
+    ]),
+    sec('灰箱增强与元数据', [
+      F('validity_domain', '策略有效域', 'text', '', 'Q_load∈[300,2400] & t_envir∈[24,38]'),
+      F('uncertainty', '物理-数据分歧度', 'number', '', 0.06),
+      F('physics_version', '物理模型版本号', 'text', '', 'v1.3.2'),
+      F('physics_check_pass', '物理约束检查通过', 'number', '', 1, { hint: '1 = 通过，0 = 未通过' })
+    ]),
+    sec('生命周期', [
+      F('created_at', '策略生成时间', 'datetime', '', '2026-11-24T09:40'),
+      F('last_validated_at', '最后验证时间', 'datetime', '', '2026-11-25T14:00'),
+      F('validation_count', '累计验证次数', 'number', '次', 128),
+      F('avg_eer_deviation', '平均EER偏差', 'number', '', 0.021),
+      F('quality_weight', '策略质量权重', 'number', '', 0.93)
+    ], '由系统自动维护，不可编辑', { locked: true })
+  ];
+}
+
+/* ======================= Schemas · 最优策略 ======================= */
+const OPTIMAL_SECTIONS = [
+  sec('时间与状态', [
+    F('timestamp', '数据采样时间戳', 'datetime', '', '2026-11-26T12:00', { req: true }),
+    S('strategy_executed', '上一策略是否已执行', [['0', '0 = 未执行'], ['1', '1 = 已执行']], '1')
+  ]),
+  sec('核心工况', [
+    F('Q_load', '当前冷负荷', 'number', 'kW', 1824, { req: true }),
+    F('t_ch_supply', '冷冻水供水温度（当前值）', 'number', '℃', 7.2, { req: true }),
+    F('G_ch_total', '冷源侧冷冻水总流量（当前值）', 'number', 'm³/h', 308, { req: true }),
+    F('G_ch_user_min', '用户侧最小冷冻水流量', 'number', 'm³/h', 260, { req: true })
+  ], '必填项，缺失时接口返回 400'),
+  sec('气象', [
+    F('t_envir', '室外干球温度', 'number', '℃', 33.2),
+    F('RH_envir', '室外相对湿度', 'number', '%', 61),
+    F('t_wb', '室外湿球温度', 'number', '℃', 27.0)
+  ]),
+  sec('冷冻水与压差', [
+    F('delta_P_ch', '冷冻水供回水压差（当前值）', 'number', 'kPa', 262),
+    F('t_ch_return', '冷冻水回水温度（当前值）', 'number', '℃', 12.0),
+    F('P_total', '系统总功率（当前值）', 'number', 'kW', 512.6)
+  ]),
+  sec('冷却水', [
+    F('G_co_total', '冷却水总流量（当前值）', 'number', 'm³/h', 358),
+    F('delta_P_co', '冷却水供回水压差（当前值）', 'number', 'kPa', 174),
+    F('t_co_in', '冷却水进水温度（当前值）', 'number', '℃', 30.4),
+    F('t_co_back', '冷却水回水温度（当前值）', 'number', '℃', 35.5)
+  ]),
+  sec('最不利末端', [
+    F('delta_P_worst', '最不利末端压差（当前值）', 'number', 'kPa', 96),
+    F('t_worst', '最不利末端温度（当前值）', 'number', '℃', 25.4),
+    F('RH_worst', '最不利末端湿度（当前值）', 'number', '%', 58)
+  ], '无末端传感器时留空，对应纠偏项跳过')
+];
+
+/* ======================= Device definitions ======================= */
+const CHILLER_TYPES = ['离心式', '螺杆式', '涡旋式', '磁悬浮离心'];
+const ONOFF_OPTS = [['1', '运行'], ['0', '停机']];
+
+function overviewGroups() {
+  return [
+    {
+      key: 'chiller', label: '冷水机组', prefix: 'CH',
+      cols: [
+        { k: 'id', l: '设备ID', ro: true },
+        { k: 'type', l: '设备类型', ro: true },
+        { k: 'chiller_type', l: '冷机类型', t: 'select', opts: CHILLER_TYPES },
+        { k: 'cap', l: '额定制冷量', u: 'kW' },
+        { k: 'cop', l: '额定COP' },
+        { k: 'pwr', l: '冷机额定功率', u: 'kW' },
+        { k: 'low', l: '低负荷效率拐点' }
+      ],
+      rows: [
+        { id: 'CH-01', type: '冷水机组', chiller_type: '离心式', cap: 1200, cop: 6.1, pwr: 196, low: 0.25 },
+        { id: 'CH-02', type: '冷水机组', chiller_type: '离心式', cap: 1200, cop: 6.0, pwr: 200, low: 0.25 },
+        { id: 'CH-03', type: '冷水机组', chiller_type: '螺杆式', cap: 600, cop: 5.2, pwr: 116, low: 0.30 }
+      ]
+    },
+    {
+      key: 'pump_ch', label: '冷冻泵', prefix: 'CHP',
+      cols: [
+        { k: 'id', l: '设备ID', ro: true },
+        { k: 'type', l: '设备类型', ro: true },
+        { k: 'pwr', l: '额定功率', u: 'kW' },
+        { k: 'flow', l: '单台额定流量', u: 'm³/h' },
+        { k: 'head', l: '单台额定扬程', u: 'm' },
+        { k: 'eff', l: '额定工况效率' },
+        { k: 'hzmin', l: '最低运行频率', u: 'Hz' }
+      ],
+      rows: [
+        { id: 'CHP-01', type: '冷冻泵', pwr: 37, flow: 220, head: 32, eff: 0.78, hzmin: 25 },
+        { id: 'CHP-02', type: '冷冻泵', pwr: 37, flow: 220, head: 32, eff: 0.78, hzmin: 25 },
+        { id: 'CHP-03', type: '冷冻泵', pwr: 30, flow: 180, head: 30, eff: 0.76, hzmin: 25 }
+      ]
+    },
+    {
+      key: 'pump_co', label: '冷却泵', prefix: 'COP',
+      cols: [
+        { k: 'id', l: '设备ID', ro: true },
+        { k: 'type', l: '设备类型', ro: true },
+        { k: 'pwr', l: '额定功率', u: 'kW' },
+        { k: 'flow', l: '单台额定流量', u: 'm³/h' },
+        { k: 'head', l: '单台额定扬程', u: 'm' },
+        { k: 'eff', l: '额定工况效率' },
+        { k: 'hzmin', l: '最低运行频率', u: 'Hz' }
+      ],
+      rows: [
+        { id: 'COP-01', type: '冷却泵', pwr: 45, flow: 260, head: 28, eff: 0.79, hzmin: 25 },
+        { id: 'COP-02', type: '冷却泵', pwr: 45, flow: 260, head: 28, eff: 0.79, hzmin: 25 },
+        { id: 'COP-03', type: '冷却泵', pwr: 37, flow: 220, head: 26, eff: 0.77, hzmin: 25 }
+      ]
+    },
+    {
+      key: 'tower', label: '冷却塔', prefix: 'CT',
+      cols: [
+        { k: 'id', l: '设备ID', ro: true },
+        { k: 'type', l: '设备类型', ro: true },
+        { k: 'pwr', l: '额定风机功率', u: 'kW' },
+        { k: 'flow', l: '单台额定水流量', u: 'm³/h' },
+        { k: 'freq', l: '风机额定频率', u: 'Hz' },
+        { k: 'hzmin', l: '频率下限', u: 'Hz' },
+        { k: 'hzmax', l: '频率上限', u: 'Hz' }
+      ],
+      rows: [
+        { id: 'CT-01', type: '冷却塔', pwr: 18.5, flow: 300, freq: 50, hzmin: 25, hzmax: 50 },
+        { id: 'CT-02', type: '冷却塔', pwr: 18.5, flow: 300, freq: 50, hzmin: 25, hzmax: 50 },
+        { id: 'CT-03', type: '冷却塔', pwr: 15, flow: 260, freq: 50, hzmin: 25, hzmax: 50 }
+      ]
+    }
+  ];
+}
+
+function historyGroups() {
+  return [
+    {
+      key: 'chiller', label: '冷水机组', prefix: 'CH',
+      cols: [
+        { k: 'id', l: '设备ID', ro: true },
+        { k: 'type', l: '设备类型', ro: true },
+        { k: 'on', l: '启停状态', t: 'select', opts: ONOFF_OPTS },
+        { k: 'load', l: '实际冷量', u: 'kW' },
+        { k: 'selfLoad', l: '机组自报冷量', u: 'kW' },
+        { k: 'pwr', l: '实时功率', u: 'kW' },
+        { k: 'chwFlow', l: '冷冻水流量', u: 'm³/h' },
+        { k: 'cwFlow', l: '冷却水流量', u: 'm³/h' },
+        { k: 'cop', l: 'COP' },
+        { k: 'chwOut', l: '冷冻水出水温度', u: '℃' },
+        { k: 'chwBack', l: '冷冻水回水温度', u: '℃' },
+        { k: 'cwIn', l: '冷却水进水温度', u: '℃' },
+        { k: 'cwOut', l: '冷却水出水温度', u: '℃' }
+      ],
+      rows: [
+        { id: 'CH-01', type: '冷水机组', on: '1', load: 612, selfLoad: 608, pwr: 98.5, chwFlow: 105, cwFlow: 128, cop: 6.21, chwOut: 7.1, chwBack: 12.0, cwIn: 30.4, cwOut: 35.5 },
+        { id: 'CH-02', type: '冷水机组', on: '1', load: 598, selfLoad: 602, pwr: 96.8, chwFlow: 104, cwFlow: 126, cop: 6.18, chwOut: 7.2, chwBack: 12.1, cwIn: 30.5, cwOut: 35.6 },
+        { id: 'CH-03', type: '冷水机组', on: '0', load: 0, selfLoad: 0, pwr: 0, chwFlow: 0, cwFlow: 0, cop: 0, chwOut: 0, chwBack: 0, cwIn: 0, cwOut: 0 }
+      ]
+    },
+    {
+      key: 'pump_ch', label: '冷冻泵', prefix: 'CHP',
+      cols: [
+        { k: 'id', l: '设备ID', ro: true },
+        { k: 'type', l: '设备类型', ro: true },
+        { k: 'on', l: '启停状态', t: 'select', opts: ONOFF_OPTS },
+        { k: 'pwr', l: '功率', u: 'kW' },
+        { k: 'freq', l: '运行频率', u: 'Hz' },
+        { k: 'head', l: '水泵扬程', u: 'm' },
+        { k: 'flow', l: '水泵流量', u: 'm³/h' },
+        { k: 'dp', l: '进出口压差', u: 'kPa' }
+      ],
+      rows: [
+        { id: 'CHP-01', type: '冷冻泵', on: '1', pwr: 26.8, freq: 43.5, head: 30.2, flow: 208, dp: 265 },
+        { id: 'CHP-02', type: '冷冻泵', on: '1', pwr: 25.4, freq: 42.0, head: 29.6, flow: 201, dp: 261 },
+        { id: 'CHP-03', type: '冷冻泵', on: '0', pwr: 0, freq: 0, head: 0, flow: 0, dp: 0 }
+      ]
+    },
+    {
+      key: 'pump_co', label: '冷却泵', prefix: 'COP',
+      cols: [
+        { k: 'id', l: '设备ID', ro: true },
+        { k: 'type', l: '设备类型', ro: true },
+        { k: 'on', l: '启停状态', t: 'select', opts: ONOFF_OPTS },
+        { k: 'pwr', l: '功率', u: 'kW' },
+        { k: 'freq', l: '运行频率', u: 'Hz' },
+        { k: 'head', l: '水泵扬程', u: 'm' },
+        { k: 'flow', l: '水泵流量', u: 'm³/h' },
+        { k: 'dp', l: '进出口压差', u: 'kPa' }
+      ],
+      rows: [
+        { id: 'COP-01', type: '冷却泵', on: '1', pwr: 33.2, freq: 45.0, head: 26.4, flow: 246, dp: 175 },
+        { id: 'COP-02', type: '冷却泵', on: '1', pwr: 32.6, freq: 44.2, head: 26.0, flow: 241, dp: 172 },
+        { id: 'COP-03', type: '冷却泵', on: '0', pwr: 0, freq: 0, head: 0, flow: 0, dp: 0 }
+      ]
+    },
+    {
+      key: 'tower', label: '冷却塔', prefix: 'CT',
+      cols: [
+        { k: 'id', l: '设备ID', ro: true },
+        { k: 'type', l: '设备类型', ro: true },
+        { k: 'on', l: '启停状态', t: 'select', opts: ONOFF_OPTS },
+        { k: 'pwr', l: '风机功率', u: 'kW' },
+        { k: 'freq', l: '运行频率', u: 'Hz' },
+        { k: 'tIn', l: '进水温度', u: '℃' },
+        { k: 'tOut', l: '出水温度', u: '℃' },
+        { k: 'flow', l: '冷却水流量', u: 'm³/h' },
+        { k: 'dryIn', l: '进风干球温度', u: '℃' },
+        { k: 'rhIn', l: '进风相对湿度', u: '%' },
+        { k: 'wbIn', l: '进风湿球温度', u: '℃' },
+        { k: 'wbOut', l: '出风湿球温度', u: '℃' },
+        { k: 'dryOut', l: '出风干球温度', u: '℃' },
+        { k: 'rhOut', l: '出风相对湿度', u: '%' }
+      ],
+      rows: [
+        { id: 'CT-01', type: '冷却塔', on: '1', pwr: 12.4, freq: 44, tIn: 35.5, tOut: 30.4, flow: 300, dryIn: 33.2, rhIn: 61, wbIn: 27.0, wbOut: 29.6, dryOut: 31.8, rhOut: 82 },
+        { id: 'CT-02', type: '冷却塔', on: '1', pwr: 11.8, freq: 42, tIn: 35.6, tOut: 30.5, flow: 296, dryIn: 33.1, rhIn: 61, wbIn: 27.0, wbOut: 29.5, dryOut: 31.7, rhOut: 81 },
+        { id: 'CT-03', type: '冷却塔', on: '0', pwr: 0, freq: 0, tIn: 0, tOut: 0, flow: 0, dryIn: 0, rhIn: 0, wbIn: 0, wbOut: 0, dryOut: 0, rhOut: 0 }
+      ]
+    }
+  ];
+}
+
+/* ======================= Editable device tables ======================= */
+function devCell(c, r) {
+  if (c.ro) return `<td class="ro">${esc(r[c.k])}</td>`;
+  if (c.t === 'select') {
+    return `<td><select>${c.opts.map(o => `<option value="${esc(optVal(o))}" ${String(r[c.k]) === String(optVal(o)) ? 'selected' : ''}>${esc(optLabel(o))}</option>`).join('')}</select></td>`;
+  }
+  return `<td><input type="number" step="any" value="${esc(r[c.k])}"></td>`;
+}
+
+function editableTableHTML(g) {
+  return `<div class="mini-wrap"><table class="mini">
+    <thead><tr>
+      ${g.cols.map(c => `<th>${esc(c.l)}${c.u ? `（${esc(c.u)}）` : ''}</th>`).join('')}
+      <th style="width:104px">操作</th>
+    </tr></thead>
+    <tbody>
+      ${g.rows.length ? g.rows.map((r, i) => `<tr>
+        ${g.cols.map(c => devCell(c, r)).join('')}
+        <td><div class="row-ops">
+          <button class="link-btn" data-dev-save="${g.key}" data-idx="${i}">保存</button>
+          <button class="link-btn danger" data-dev-del="${g.key}" data-idx="${i}">删除</button>
+        </div></td>
+      </tr>`).join('') : `<tr><td colspan="${g.cols.length + 1}"><div class="empty" style="padding:28px 0">${iconEmpty}暂无设备，请新增</div></td></tr>`}
+    </tbody>
+  </table></div>`;
+}
+
+function devPaneBodyHTML(g) {
+  return `<div class="dev-toolbar">
+      <div class="info">共 ${g.rows.length} 台设备 · 支持行内编辑后逐行保存</div>
+      <button class="btn btn-soft btn-sm" data-dev-add="${g.key}">+ 新增设备</button>
+    </div>
+    ${editableTableHTML(g)}`;
+}
+
+function deviceTabsHTML(groups) {
+  return `<div class="tabs">
+      ${groups.map((g, i) => `<button class="tab ${i === 0 ? 'active' : ''}" data-dtab="${g.key}">${g.label}<span class="cnt">${g.rows.length}</span></button>`).join('')}
+    </div>
+    ${groups.map((g, i) => `<div class="pane ${i === 0 ? 'active' : ''}" id="pane-${g.key}">${devPaneBodyHTML(g)}</div>`).join('')}`;
+}
+
+function bindDeviceTables(root, groups) {
+  const scope = $('.modal-body', root) || root;
+  const rerender = (key) => {
+    const g = groups.find(x => x.key === key);
+    const pane = $(`#pane-${key}`, root);
+    if (g && pane) pane.innerHTML = devPaneBodyHTML(g);
+    const tab = $(`[data-dtab="${key}"]`, root);
+    if (tab && g) tab.innerHTML = `${g.label}<span class="cnt">${g.rows.length}</span>`;
+  };
+  scope.addEventListener('click', e => {
+    const tab = e.target.closest('[data-dtab]');
+    if (tab) {
+      $$('.tab', root).forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      $$('.pane', root).forEach(p => p.classList.remove('active'));
+      const pane = $('#pane-' + tab.dataset.dtab, root);
+      if (pane) pane.classList.add('active');
+      return;
+    }
+    const add = e.target.closest('[data-dev-add]');
+    if (add) {
+      const g = groups.find(x => x.key === add.dataset.devAdd);
+      if (!g) return;
+      const row = {};
+      g.cols.forEach(c => { row[c.k] = c.ro ? `${g.prefix}-${pad2(g.rows.length + 1)}` : (c.t === 'select' ? optVal(c.opts[0]) : 0); });
+      row.type = g.label;
+      g.rows.push(row);
+      rerender(g.key);
+      toast(`已新增 ${row.id}，请填写参数后保存`);
+      return;
+    }
+    const save = e.target.closest('[data-dev-save]');
+    if (save) {
+      const g = groups.find(x => x.key === save.dataset.devSave);
+      const row = g && g.rows[Number(save.dataset.idx)];
+      if (row) toast(`${row.id} 设备参数已保存`);
+      return;
+    }
+    const del = e.target.closest('[data-dev-del]');
+    if (del) {
+      const g = groups.find(x => x.key === del.dataset.devDel);
+      if (!g) return;
+      const idx = Number(del.dataset.idx);
+      const row = g.rows[idx];
+      g.rows.splice(idx, 1);
+      rerender(g.key);
+      toast(`已删除设备 ${row ? row.id : ''}`);
+    }
+  });
+}
+
+/* ======================= Strategy control detail ======================= */
+function controlGroups() {
+  return [
+    {
+      key: 'c-chiller', label: '冷水机组', type: '冷水机组', hasFreq: false,
+      rows: [
+        { id: 'CH-01', on: '1' }, { id: 'CH-02', on: '1' }, { id: 'CH-03', on: '0' }
+      ]
+    },
+    {
+      key: 'c-pump-ch', label: '冷冻泵', type: '冷冻泵', hasFreq: true,
+      rows: [
+        { id: 'CHP-01', on: '1', freq: 43.5 }, { id: 'CHP-02', on: '1', freq: 42.0 }, { id: 'CHP-03', on: '0', freq: 0 }
+      ]
+    },
+    {
+      key: 'c-pump-co', label: '冷却泵', type: '冷却泵', hasFreq: true,
+      rows: [
+        { id: 'COP-01', on: '1', freq: 45.0 }, { id: 'COP-02', on: '1', freq: 44.2 }, { id: 'COP-03', on: '0', freq: 0 }
+      ]
+    },
+    {
+      key: 'c-tower', label: '冷却塔', type: '冷却塔', hasFreq: true,
+      rows: [
+        { id: 'CT-01', on: '1', freq: 44.0 }, { id: 'CT-02', on: '1', freq: 42.0 }, { id: 'CT-03', on: '0', freq: 0 }
+      ]
+    }
+  ];
+}
+
+function controlTableHTML(g, ro) {
+  return `<div class="mini-wrap"><table class="mini"><thead><tr>
+      <th>设备ID</th><th>设备类型</th><th>启停状态</th>${g.hasFreq ? '<th>频率设定（Hz）</th>' : ''}
+    </tr></thead><tbody>
+      ${g.rows.map(r => `<tr>
+        <td class="ro">${esc(r.id)}</td>
+        <td class="ro">${esc(g.type)}</td>
+        <td>${ro ? `<span class="status-dot"><i class="${r.on === '1' ? 'dot-on' : 'dot-off'}"></i>${r.on === '1' ? '开' : '关'}</span>`
+          : `<select ${ro ? 'disabled' : ''}>${ONOFF_OPTS.map(o => `<option value="${esc(optVal(o))}" ${String(r.on) === String(optVal(o)) ? 'selected' : ''}>${esc(optLabel(o))}（${optVal(o)}）</option>`).join('')}</select>`}</td>
+        ${g.hasFreq ? `<td>${ro ? `<span class="muted-strong">${r.freq}</span>` : `<input type="number" step="any" value="${esc(r.freq)}">`}</td>` : ''}
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function controlTabsHTML(ro) {
+  const groups = controlGroups();
+  return `<div class="tabs">
+      ${groups.map((g, i) => `<button class="tab ${i === 0 ? 'active' : ''}" data-ctab="${g.key}">${g.label}<span class="cnt">${g.rows.length}</span></button>`).join('')}
+    </div>
+    ${groups.map((g, i) => `<div class="pane ${i === 0 ? 'active' : ''}" id="cpane-${g.key}">
+      <div class="dev-toolbar"><div class="info">共 ${g.rows.length} 台 · 启停 0 = 关，1 = 开</div></div>
+      ${controlTableHTML(g, ro)}
+    </div>`).join('')}`;
+}
+
+function bindControlTabs(root) {
+  $$('[data-ctab]', root).forEach(tab => {
+    tab.addEventListener('click', () => {
+      $$('[data-ctab]', root).forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      $$('.pane', root).forEach(p => p.classList.remove('active'));
+      const pane = $('#cpane-' + tab.dataset.ctab, root);
+      if (pane) pane.classList.add('active');
+    });
+  });
+}
+
+/* ======================= Live data (最优策略) ======================= */
+const LIVE_METRICS = [
+  { k: 'Q_load', label: '当前冷负荷', en: 'Q_load', unit: 'kW', v: 1824, hl: true },
+  { k: 'P_total', label: '系统总功率', en: 'P_total', unit: 'kW', v: 512.6, hl: true },
+  { k: 'EER', label: '系统综合能效比', en: 'EER', unit: '', v: 3.56, hl: true },
+  { k: 't_ch_supply', label: '冷冻水供水温度', en: 't_ch_supply', unit: '℃', v: 7.2 },
+  { k: 't_ch_return', label: '冷冻水回水温度', en: 't_ch_return', unit: '℃', v: 12.0 },
+  { k: 'G_ch_total', label: '冷冻水总流量', en: 'G_ch_total', unit: 'm³/h', v: 308 },
+  { k: 'delta_P_ch', label: '冷冻水供回水压差', en: 'delta_P_ch', unit: 'kPa', v: 262 },
+  { k: 't_co_in', label: '冷却水进水温度', en: 't_co_in', unit: '℃', v: 30.4 },
+  { k: 't_co_back', label: '冷却水回水温度', en: 't_co_back', unit: '℃', v: 35.5 },
+  { k: 't_envir', label: '室外干球温度', en: 't_envir', unit: '℃', v: 33.2 },
+  { k: 'RH_envir', label: '室外相对湿度', en: 'RH_envir', unit: '%', v: 61 },
+  { k: 't_wb', label: '室外湿球温度', en: 't_wb', unit: '℃', v: 27.0 },
+  { k: 'delta_P_worst', label: '最不利末端压差', en: 'delta_P_worst', unit: 'kPa', v: 96 },
+  { k: 't_worst', label: '最不利末端温度', en: 't_worst', unit: '℃', v: 25.4 },
+  { k: 'RH_worst', label: '最不利末端湿度', en: 'RH_worst', unit: '%', v: 58 }
+];
+
+function liveGridHTML() {
+  return `<div class="live-grid">${LIVE_METRICS.map(m => `
+    <div class="live-card ${m.hl ? 'hl' : ''}">
+      <div class="live-label">${m.label}<span class="en">${m.en}</span></div>
+      <div class="live-value" data-live="${m.k}">${m.v}<span class="live-unit">${m.unit}</span></div>
+      <div class="live-delta" data-live-delta="${m.k}">— 较上一采样</div>
+    </div>`).join('')}</div>`;
+}
+
+function startLiveUpdates(root) {
+  const timer = setInterval(() => {
+    LIVE_METRICS.forEach(m => {
+      if (m.k === 'EER' || m.k === 'RH_envir' || m.k === 'RH_worst') return;
+      const el = $(`[data-live="${m.k}"]`, root);
+      if (!el) return;
+      const raw = el.firstChild ? el.firstChild.nodeValue : '';
+      const prev = parseFloat(raw) || m.v;
+      const drift = (Math.random() - 0.5) * (m.v * 0.006 + 0.05);
+      const next = m.k === 'G_ch_total' || m.k === 'P_total' ? Math.max(0, prev + drift) : prev + drift;
+      const fixed = next.toFixed(m.v < 10 ? 2 : 1);
+      el.firstChild.nodeValue = fixed;
+      const delta = $(`[data-live-delta="${m.k}"]`, root);
+      if (delta) {
+        const d = fixed - prev;
+        delta.className = `live-delta ${d >= 0 ? 'up' : 'down'}`;
+        delta.textContent = `${d >= 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(2)} 较上一采样`;
+      }
+    });
+    const t = $('#liveTime', root);
+    if (t) t.textContent = '最近刷新 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  }, 2000);
+  return () => clearInterval(timer);
+}
+
+/* ======================= Helpers ======================= */
+function nowStr() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function todayCompact() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+}
+function parseNum(v, d) {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : d;
+}
+function collectFields(root) {
+  const out = {};
+  $$('input[name],select[name]', root).forEach(el => { out[el.name] = el.value; });
+  return out;
+}
+function algoTag(t) {
+  const m = { '能耗代理+策略生成算法': 'tag-blue', '实时优化算法': 'tag-violet', '负荷预测算法': 'tag-green' };
+  return `<span class="tag ${m[t] || 'tag-gray'}">${esc(t)}</span>`;
+}
+function sourceTag(s) {
+  const m = { '手动维护': 'tag-gray', '文件导入': 'tag-amber', '算法生成': 'tag-blue' };
+  return `<span class="tag ${m[s] || 'tag-gray'}">${esc(s)}</span>`;
+}
+function strategyTypeTag(t) {
+  return `<span class="tag ${t === '完整' ? 'tag-green' : 'tag-amber'}">${esc(t)}</span>`;
+}
+
+/* ======================= List pages ======================= */
+function renderMenu() {
+  $('#menu').innerHTML = MENU.map(m => `
+    <button class="menu-item ${state.page === m.id ? 'active' : ''}" data-act="nav" data-page="${m.id}">
+      <span class="layer-no">${m.no}</span>
+      <span class="menu-text"><span class="menu-title">${m.label}</span><span class="menu-layer">${m.layer}</span></span>
+      <svg class="menu-arrow" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 3.5 10.5 8 6 12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>`).join('');
+}
+
+function renderProjects() {
+  const q = state.search.projects.trim().toLowerCase();
+  const rows = DB.projects.filter(p => !q || [p.id, p.name, p.orient].join(' ').toLowerCase().includes(q));
+  $('#main').innerHTML = pageHead('第一层', '项目信息', '维护项目建筑档案、空调系统静态参数与设备台账，为算法运行与策略生成提供项目级基础数据。') + `
+  <div class="card">
+    ${toolbarHTML({ page: 'projects', placeholder: '输入项目名称 / 项目ID 检索', actions: `<button class="btn btn-primary" data-act="project-create">+ 创建项目信息</button>` })}
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>项目ID</th><th>项目名称</th><th>建筑总面积（m²）</th><th>空调服务面积（m²）</th><th>建筑朝向</th>
+        <th>窗墙比</th><th>人员密度（人/m²）</th><th>设备功率密度（W/m²）</th><th>照明功率密度（W/m²）</th><th>操作</th>
+      </tr></thead>
+      <tbody>${rows.length ? rows.map(p => `<tr>
+        <td class="cell-sub">${esc(p.id)}</td>
+        <td class="cell-strong">${esc(p.name)}</td>
+        <td>${p.area.toLocaleString('zh-CN')}</td>
+        <td>${p.hvac.toLocaleString('zh-CN')}</td>
+        <td>${esc(p.orient)}</td>
+        <td>${p.wwr}</td>
+        <td>${p.occ}</td>
+        <td>${p.eqp}</td>
+        <td>${p.light}</td>
+        <td><div class="ops-cell">
+          <button class="link-btn" data-act="project-edit" data-id="${esc(p.id)}">编辑</button>
+          <button class="link-btn" data-act="project-view" data-id="${esc(p.id)}">查看</button>
+          <button class="link-btn danger" data-act="project-del" data-id="${esc(p.id)}">删除</button>
+          <button class="link-btn" data-act="project-devices" data-id="${esc(p.id)}">配置设备概况</button>
+        </div></td>
+      </tr>`).join('') : emptyRow(10)}</tbody>
+    </table></div>
+    ${tableFootHTML(rows.length)}
+  </div>`;
+}
+
+function renderRuns() {
+  const q = state.search.runs.trim().toLowerCase();
+  const rows = DB.runs.filter(r => !q || [r.id, projectLabel(r.project), String(r.load)].join(' ').toLowerCase().includes(q));
+  $('#main').innerHTML = pageHead('第二层', '历史运行', '记录冷源系统逐时运行数据，支撑能耗代理模型训练、策略效果复盘与能效基准评估。') + `
+  <div class="card">
+    ${toolbarHTML({
+      page: 'runs', placeholder: '输入运行ID / 所属项目检索',
+      actions: `<button class="btn btn-ghost" data-act="run-template">导入模版下载</button>
+                <button class="btn btn-ghost" data-act="run-import">数据导入</button>
+                <button class="btn btn-primary" data-act="run-create">+ 创建系统整体运行数据</button>`
+    })}
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>运行ID</th><th>冷负荷（kW）</th><th>所属项目</th><th>冷源系统总电功率（kW）</th>
+        <th>系统综合能效比</th><th>系统综合性能系数</th><th>运行时间</th><th>操作</th>
+      </tr></thead>
+      <tbody>${rows.length ? rows.map(r => `<tr>
+        <td class="cell-sub">${esc(r.id)}</td>
+        <td class="cell-strong">${r.load.toLocaleString('zh-CN')}</td>
+        <td>${esc(projectLabel(r.project))}</td>
+        <td>${r.power}</td>
+        <td>${r.eer}</td>
+        <td>${r.cop}</td>
+        <td>${esc(r.time)}</td>
+        <td><div class="ops-cell">
+          <button class="link-btn" data-act="run-edit" data-id="${esc(r.id)}">编辑</button>
+          <button class="link-btn" data-act="run-view" data-id="${esc(r.id)}">查看</button>
+          <button class="link-btn danger" data-act="run-del" data-id="${esc(r.id)}">删除</button>
+          <button class="link-btn" data-act="run-devices" data-id="${esc(r.id)}">设备运行明细</button>
+        </div></td>
+      </tr>`).join('') : emptyRow(8)}</tbody>
+    </table></div>
+    ${tableFootHTML(rows.length)}
+  </div>`;
+}
+
+function renderAlgo() {
+  const q = state.search.algo.trim().toLowerCase();
+  const rows = DB.algos.filter(a => !q || [a.id, a.type, a.creator].join(' ').toLowerCase().includes(q));
+  $('#main').innerHTML = pageHead('第三层', '算法参数配置', '按算法类型维护模型训练、策略寻优、实时优化与负荷预测参数，参数变更同步至对应算法实例。') + `
+  <div class="card">
+    ${toolbarHTML({ page: 'algo', placeholder: '输入配置ID / 算法类型检索', actions: `<button class="btn btn-primary" data-act="algo-create">+ 创建算法参数配置</button>` })}
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>算法参数配置ID</th><th>算法类型</th><th>创建人</th><th>创建时间</th><th>更新人</th><th>更新时间</th><th>操作</th>
+      </tr></thead>
+      <tbody>${rows.length ? rows.map(a => `<tr>
+        <td class="cell-sub">${esc(a.id)}</td>
+        <td>${algoTag(a.type)}</td>
+        <td>${esc(a.creator)}</td>
+        <td class="cell-sub">${esc(a.ctime)}</td>
+        <td>${esc(a.updater)}</td>
+        <td class="cell-sub">${esc(a.utime)}</td>
+        <td><div class="ops-cell">
+          <button class="link-btn" data-act="algo-edit" data-id="${esc(a.id)}">编辑</button>
+          <button class="link-btn" data-act="algo-view" data-id="${esc(a.id)}">查看</button>
+          <button class="link-btn danger" data-act="algo-del" data-id="${esc(a.id)}">删除</button>
+        </div></td>
+      </tr>`).join('') : emptyRow(7)}</tbody>
+    </table></div>
+    ${tableFootHTML(rows.length)}
+  </div>`;
+}
+
+function renderStrategies() {
+  const q = state.search.strategies.trim().toLowerCase();
+  const rows = DB.strategies.filter(s => !q || [s.id, s.name, s.source, projectLabel(s.project), s.type].join(' ').toLowerCase().includes(q));
+  $('#main').innerHTML = pageHead('第四层', '策略库', '沉淀由算法生成或人工维护的工况-控制策略，支持策略检索、导入、控制明细维护与策略库生成。') + `
+  <div class="card">
+    ${toolbarHTML({
+      page: 'strategies', placeholder: '输入策略名称 / ID / 项目检索',
+      actions: `<button class="btn btn-ghost" data-act="strategy-template">模版下载</button>
+                <button class="btn btn-ghost" data-act="strategy-import">导入策略</button>
+                <button class="btn btn-soft" data-act="strategy-create">创建策略</button>
+                <button class="btn btn-primary" data-act="strategy-generate">生成策略库</button>`
+    })}
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>策略ID</th><th>策略名称</th><th>策略来源</th><th>所属项目</th><th>策略类型</th>
+        <th>使用策略生成算法参数</th><th>创建人</th><th>更新人</th><th>更新时间</th><th>操作</th>
+      </tr></thead>
+      <tbody>${rows.length ? rows.map(s => `<tr>
+        <td class="cell-sub">${esc(s.id)}</td>
+        <td class="cell-strong">${esc(s.name)}</td>
+        <td>${sourceTag(s.source)}</td>
+        <td>${esc(projectLabel(s.project))}</td>
+        <td>${strategyTypeTag(s.type)}</td>
+        <td><span class="cell-sub">${esc(s.algo)}</span></td>
+        <td>${esc(s.creator)}</td>
+        <td>${esc(s.updater)}</td>
+        <td class="cell-sub">${esc(s.utime)}</td>
+        <td><div class="ops-cell">
+          <button class="link-btn" data-act="strategy-edit" data-id="${esc(s.id)}">编辑</button>
+          <button class="link-btn" data-act="strategy-view" data-id="${esc(s.id)}">查看</button>
+          <button class="link-btn danger" data-act="strategy-del" data-id="${esc(s.id)}">删除</button>
+          <button class="link-btn" data-act="strategy-control" data-id="${esc(s.id)}">策略控制明细</button>
+        </div></td>
+      </tr>`).join('') : emptyRow(10)}</tbody>
+    </table></div>
+    ${tableFootHTML(rows.length)}
+  </div>`;
+}
+
+function renderOptimal() {
+  const q = state.search.optimal.trim().toLowerCase();
+  const rows = DB.optimal.filter(o => !q || [o.id, projectLabel(o.project), o.creator].join(' ').toLowerCase().includes(q));
+  $('#main').innerHTML = pageHead('第五层', '最优策略', '面向当前时刻工况输出最优控制策略，支持实时数据回传、人工修正与策略下发。') + `
+  <div class="card">
+    ${toolbarHTML({ page: 'optimal', placeholder: '输入策略ID / 所属项目检索', actions: `<button class="btn btn-primary" data-act="optimal-create">+ 创建最优策略</button>` })}
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>策略ID</th><th>所属项目</th><th>创建人</th><th>创建时间</th><th>更新人</th><th>更新时间</th><th>操作</th>
+      </tr></thead>
+      <tbody>${rows.length ? rows.map(o => `<tr>
+        <td class="cell-sub">${esc(o.id)}</td>
+        <td class="cell-strong">${esc(projectLabel(o.project))}</td>
+        <td>${esc(o.creator)}</td>
+        <td class="cell-sub">${esc(o.ctime)}</td>
+        <td>${esc(o.updater)}</td>
+        <td class="cell-sub">${esc(o.utime)}</td>
+        <td><div class="ops-cell">
+          <button class="link-btn" data-act="optimal-realtime" data-id="${esc(o.id)}">实时数据</button>
+          <button class="link-btn" data-act="optimal-edit" data-id="${esc(o.id)}">编辑</button>
+          <button class="link-btn danger" data-act="optimal-del" data-id="${esc(o.id)}">删除</button>
+          <button class="link-btn" data-act="optimal-control" data-id="${esc(o.id)}">策略控制明细</button>
+        </div></td>
+      </tr>`).join('') : emptyRow(7)}</tbody>
+    </table></div>
+    ${tableFootHTML(rows.length)}
+  </div>`;
+}
+
+function renderPage() {
+  renderMenu();
+  const pages = { projects: renderProjects, runs: renderRuns, algo: renderAlgo, strategies: renderStrategies, optimal: renderOptimal };
+  (pages[state.page] || renderProjects)();
+}
+
+/* ======================= Project form ======================= */
+function openProjectForm(mode, p) {
+  const ro = mode === 'view';
+  const map = p ? {
+    building_area: p.area, hvac_area: p.hvac, building_orientation: p.orient, window_wall_ratio: p.wwr,
+    occupancy_density: p.occ, equipment_power_density: p.eqp, lighting_power_density: p.light
+  } : {};
+  const sections = applyValues(PROJECT_SECTIONS, map);
+  const top = `<div class="algo-bar">
+    <div class="field" style="min-width:300px">
+      <label>项目名称<span class="en">project_name</span></label>
+      <div class="control"><input type="text" name="project_name" value="${esc(p ? p.name : '')}" placeholder="如：杭州滨江智慧产业园 A 座" ${ro ? 'readonly' : 'required'}></div>
+    </div>
+    <div class="field" style="min-width:200px">
+      <label>项目ID<span class="en">project_id</span></label>
+      <div class="control"><input type="text" name="project_id" value="${esc(p ? p.id : '')}" placeholder="留空自动生成" ${ro || p ? 'readonly' : ''}></div>
+    </div>
+    <div class="algo-note">建筑与环境信息仅作项目档案与报表属性；空调系统台数为静态参数，创建后不可运行时修改。</div>
+  </div>`;
+  openFormModal({
+    title: ro ? '查看项目信息' : (p ? '编辑项目信息' : '创建项目信息'),
+    sub: p ? `${p.id} · ${p.name}` : '新建项目档案，后续可补充设备概况与算法参数',
+    sections, readonly: ro, top,
+    onSave(root) {
+      const v = collectFields(root);
+      if (p) {
+        p.name = v.project_name || p.name;
+        p.area = parseNum(v.building_area, p.area);
+        p.hvac = parseNum(v.hvac_area, p.hvac);
+        p.orient = v.building_orientation || p.orient;
+        p.wwr = parseNum(v.window_wall_ratio, p.wwr);
+        p.occ = parseNum(v.occupancy_density, p.occ);
+        p.eqp = parseNum(v.equipment_power_density, p.eqp);
+        p.light = parseNum(v.lighting_power_density, p.light);
+        toast('项目信息已更新');
+      } else {
+        const newId = v.project_id ? v.project_id : `PRJ-${String(DB.projects.length + 1).padStart(3, '0')}`;
+        DB.projects.unshift({
+          id: newId, name: v.project_name || '未命名项目',
+          area: parseNum(v.building_area, 0), hvac: parseNum(v.hvac_area, 0),
+          orient: v.building_orientation || '南', wwr: parseNum(v.window_wall_ratio, 0),
+          occ: parseNum(v.occupancy_density, 0), eqp: parseNum(v.equipment_power_density, 0),
+          light: parseNum(v.lighting_power_density, 0)
+        });
+        toast('项目信息创建成功');
+      }
+      closeModal();
+      renderPage();
+    }
+  });
+}
+
+/* ======================= Run form ======================= */
+function openRunForm(mode, r) {
+  const ro = mode === 'view';
+  const map = r ? { Q_load: r.load, P_total: r.power, COP_system: r.cop, EER: r.eer } : {};
+  const sections = applyValues(RUN_SECTIONS, map);
+  const selected = r ? r.project : DB.projects[0].id;
+  const top = `<div class="algo-bar">
+    <div class="field" style="min-width:330px">
+      <label>所属项目<span class="en">project_id</span></label>
+      <div class="control"><select name="run_project">
+        ${DB.projects.map(p => `<option value="${esc(p.id)}" ${p.id === selected ? 'selected' : ''}>${esc(p.id)} · ${esc(p.name)}</option>`).join('')}
+      </select></div>
+    </div>
+    <div class="algo-note">运行数据将作为能耗代理模型训练样本；分项功率与负荷预测特征可选填。</div>
+  </div>`;
+  openFormModal({
+    title: ro ? '查看系统整体运行数据' : (r ? '编辑系统整体运行数据' : '创建系统整体运行数据'),
+    sub: r ? r.id : '录入一条冷源系统整体运行记录',
+    sections, readonly: ro, top,
+    onSave(root) {
+      const v = collectFields(root);
+      if (r) {
+        r.load = parseNum(v.Q_load, r.load);
+        r.power = parseNum(v.P_total, r.power);
+        r.cop = parseNum(v.COP_system, r.cop);
+        r.eer = parseNum(v.EER, r.eer);
+        r.project = v.run_project || r.project;
+        r.projectLabel = projectLabel(r.project);
+        toast('运行数据已更新');
+      } else {
+        const pid = v.run_project || DB.projects[0].id;
+        DB.runs.unshift({
+          id: `RUN-${todayCompact()}-${String(DB.runs.length + 1).padStart(3, '0')}`,
+          load: parseNum(v.Q_load, 0), project: pid, projectLabel: projectLabel(pid),
+          power: parseNum(v.P_total, 0), cop: parseNum(v.COP_system, 0), eer: parseNum(v.EER, 0),
+          time: nowStr()
+        });
+        toast('运行数据创建成功');
+      }
+      closeModal();
+      renderPage();
+    }
+  });
+}
+
+/* ======================= Algorithm form ======================= */
+function openAlgoForm(mode, row) {
+  const ro = mode === 'view';
+  let current = row ? row.type : ALGO_TYPES[0];
+  const top = `<div class="algo-bar">
+    <div class="field" style="min-width:300px">
+      <label>算法类型<span class="en">algorithm_type</span></label>
+      <div class="control"><select id="algoTypeSelect" ${ro ? 'disabled' : ''}>
+        ${ALGO_TYPES.map(t => `<option ${t === current ? 'selected' : ''}>${esc(t)}</option>`).join('')}
+      </select></div>
+    </div>
+    <div class="algo-note" id="algoNote">当前加载：<b>${esc(current)}</b> 参数模板 · 共 ${ALGO_SCHEMAS[current].length} 个参数分组</div>
+  </div>`;
+  openFormModal({
+    title: ro ? '查看算法参数配置' : (row ? '编辑算法参数配置' : '创建算法参数配置'),
+    sub: row ? `${row.id} · ${row.type}` : '切换算法类型将加载对应参数分组，保存后同步至算法实例',
+    sections: ALGO_SCHEMAS[current], readonly: ro, top,
+    onMount(root) {
+      const sel = $('#algoTypeSelect', root);
+      if (!sel || ro) return;
+      sel.addEventListener('change', () => {
+        current = sel.value;
+        const wrap = $('.section-wrap', root);
+        wrap.innerHTML = renderSections(ALGO_SCHEMAS[current], ro, 1);
+        bindAccordions(wrap);
+        $('#algoNote', root).innerHTML = `当前加载：<b>${esc(current)}</b> 参数模板 · 共 ${ALGO_SCHEMAS[current].length} 个参数分组`;
+      });
+    },
+    onSave() {
+      if (row) {
+        row.type = current;
+        row.updater = '张策';
+        row.utime = nowStr();
+      } else {
+        DB.algos.unshift({
+          id: `AP-${String(DB.algos.length + 1).padStart(3, '0')}`,
+          type: current, creator: '张策', ctime: nowStr(), updater: '张策', utime: nowStr()
+        });
+      }
+      closeModal();
+      renderPage();
+      toast('算法参数配置已保存');
+    }
+  });
+}
+
+/* ======================= Strategy form ======================= */
+function strategyControlBlockHTML(ro) {
+  return `<div class="control-block">
+    <div class="control-block-head">
+      <span class="acc-idx">08</span>
+      <div class="acc-text">
+        <div class="acc-title">策略控制明细${ro ? '<span class="mini-tag">只读</span>' : ''}</div>
+        <div class="acc-sub">按项目设备台数逐台展开控制目标，启停 0 = 关 / 1 = 开</div>
+      </div>
+      <span class="acc-count">12 台设备</span>
+    </div>
+    <div class="control-block-body">
+      ${ro ? '' : '<div class="control-tip">修改启停状态与频率设定后随策略一并保存；频率上下限受设备概况约束。</div>'}
+      ${controlTabsHTML(ro)}
+    </div>
+  </div>`;
+}
+
+function openStrategyForm(mode, s) {
+  const ro = mode === 'view';
+  const map = s ? {
+    strategy_name: s.name, project_id: s.project, strategy_type: s.type,
+    strategy_source: s.source, optimization_algorithm_id: s.algo
+  } : {};
+  const sections = applyValues(getStrategySections(), map);
+  openFormModal({
+    title: ro ? '查看策略' : (s ? '编辑策略' : '创建策略'),
+    sub: s ? `${s.id} · ${s.name}` : '策略库 · 维护工况匹配参数与管理策略控制明细',
+    sections, readonly: ro,
+    after: strategyControlBlockHTML(ro),
+    onMount(root) { bindControlTabs(root); },
+    onSave(root) {
+      const v = collectFields(root);
+      if (s) {
+        s.name = v.strategy_name || s.name;
+        s.source = v.strategy_source || s.source;
+        s.project = v.project_id || s.project;
+        s.type = v.strategy_type || s.type;
+        s.algo = v.optimization_algorithm_id || s.algo;
+        s.updater = '张策';
+        s.utime = nowStr();
+        toast('策略已更新');
+      } else {
+        const seq = 710 + DB.strategies.length;
+        DB.strategies.unshift({
+          id: `ST-2026-${seq}`, name: v.strategy_name || '未命名策略',
+          source: v.strategy_source || '手动维护', project: v.project_id || DB.projects[0].id,
+          type: v.strategy_type || '完整', algo: v.optimization_algorithm_id || DB.algos[0].id,
+          creator: '张策', updater: '张策', utime: nowStr()
+        });
+        toast('策略创建成功');
+      }
+      closeModal();
+      renderPage();
+    }
+  });
+}
+
+/* ======================= Optimal form ======================= */
+function openOptimalForm(mode, o) {
+  const ro = mode === 'view';
+  const selected = o ? o.project : DB.projects[0].id;
+  const top = `<div class="algo-bar">
+    <div class="field" style="min-width:330px">
+      <label>所属项目<span class="en">project_id</span></label>
+      <div class="control"><select name="opt_project" ${ro ? 'disabled' : ''}>
+        ${DB.projects.map(p => `<option value="${esc(p.id)}" ${p.id === selected ? 'selected' : ''}>${esc(p.id)} · ${esc(p.name)}</option>`).join('')}
+      </select></div>
+    </div>
+    <div class="algo-note">核心工况缺失将无法调用优化接口（返回 400）；最不利末端无传感器时可留空。</div>
+  </div>`;
+  openFormModal({
+    title: ro ? '查看最优策略' : (o ? '编辑最优策略' : '创建最优策略'),
+    sub: o ? `${o.id} · ${projectLabel(o.project)}` : '按当前时刻工况创建最优策略请求',
+    sections: OPTIMAL_SECTIONS, readonly: ro, top,
+    onSave(root) {
+      const v = collectFields(root);
+      if (o) {
+        o.project = v.opt_project || o.project;
+        o.updater = '张策';
+        o.utime = nowStr();
+        toast('最优策略已更新');
+      } else {
+        const pid = v.opt_project || DB.projects[0].id;
+        DB.optimal.unshift({
+          id: `OS-${todayCompact()}-${String(DB.optimal.length + 1).padStart(3, '0')}`,
+          project: pid, creator: '张策', ctime: nowStr(), updater: '张策', utime: nowStr()
+        });
+        toast('最优策略创建成功');
+      }
+      closeModal();
+      renderPage();
+    }
+  });
+}
+
+/* ======================= Device modals ======================= */
+function openDevices(project) {
+  const groups = overviewGroups();
+  openModal({
+    title: '配置设备概况', sub: `${project.id} · ${project.name}`, size: 'xl',
+    body: `<div class="section-note"><b>说明</b>设备台账用于策略生成与频率边界校验，设备台数需与项目空调系统信息保持一致。</div>${deviceTabsHTML(groups)}`,
+    footer: `<div class="foot-hint">设备数据修改后随策略生成即时生效</div>
+      <button class="btn btn-ghost" data-close>关闭</button>
+      <button class="btn btn-primary" id="devDone">完成</button>`,
+    onMount(root) {
+      bindDeviceTables(root, groups);
+      $('#devDone', root).addEventListener('click', () => { closeModal(); toast('设备概况已保存'); });
+    }
+  });
+}
+
+function openRunDevices(run) {
+  const groups = historyGroups();
+  openModal({
+    title: '设备运行明细', sub: `${run.id} · ${projectLabel(run.project)} · ${run.time}`, size: 'xl',
+    body: `<div class="section-note"><b>说明</b>逐台记录设备运行参数，用于分项能耗拆分、设备效率评估与策略效果复盘。</div>${deviceTabsHTML(groups)}`,
+    footer: `<div class="foot-hint">共 12 台设备 · 支持逐行保存</div>
+      <button class="btn btn-ghost" data-close>关闭</button>
+      <button class="btn btn-primary" id="devDone">完成</button>`,
+    onMount(root) {
+      bindDeviceTables(root, groups);
+      $('#devDone', root).addEventListener('click', () => { closeModal(); toast('设备运行明细已保存'); });
+    }
+  });
+}
+
+function openControlModal(record) {
+  openModal({
+    title: '策略控制明细', sub: `${record.id} · ${projectLabel(record.project)}`, size: 'lg',
+    body: `<div class="control-tip" style="margin-bottom:12px">逐台核对策略下发的启停与频率目标，修改后保存将立即写入策略控制明细。</div>${controlTabsHTML(false)}`,
+    footer: `<div class="foot-hint">共 12 台设备控制点</div>
+      <button class="btn btn-ghost" data-close>取消</button>
+      <button class="btn btn-primary" id="ctrlSave">保存控制明细</button>`,
+    onMount(root) {
+      bindControlTabs(root);
+      $('#ctrlSave', root).addEventListener('click', () => { closeModal(); toast('策略控制明细已保存'); });
+    }
+  });
+}
+
+/* ======================= Live data modal ======================= */
+function openLiveModal(record) {
+  openModal({
+    title: '实时数据', sub: `${record.id} · ${projectLabel(record.project)}`, size: 'xl',
+    body: `<div class="live-head">
+        <div class="live-indicator"><span class="pulse"></span>实时采样中 · 每 2 秒刷新</div>
+        <div class="live-time" id="liveTime">最近刷新 --</div>
+      </div>${liveGridHTML()}`,
+    footer: `<div class="foot-hint">数据源：冷源系统实时点位（演示数据）</div>
+      <button class="btn btn-ghost" data-close>关闭</button>
+      <button class="btn btn-soft" id="liveRefresh">立即刷新</button>`,
+    onMount(root) {
+      $('#liveTime', root).textContent = '最近刷新 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+      const stop = startLiveUpdates(root);
+      modalCleanup = stop;
+      $('#liveRefresh', root).addEventListener('click', () => {
+        $('#liveTime', root).textContent = '最近刷新 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+        toast('实时数据已刷新');
+      });
+    }
+  });
+}
+
+/* ======================= Import / generate modals ======================= */
+function openImportModal(title) {
+  openModal({
+    title, sub: '支持 Excel / CSV 模板文件批量导入', size: 'md',
+    body: `<div class="section-note"><b>提示</b>请先下载模版并按表头填写；演示环境不会真实上传文件。</div>
+      <label class="dropzone" for="importFile">
+        <strong>点击选择文件，或将文件拖拽至此处</strong>
+        <span class="sub">支持 .xlsx / .xls / .csv，单次不超过 5000 行</span>
+        <div class="file-name" id="fileName"></div>
+        <input id="importFile" type="file" accept=".xlsx,.xls,.csv" hidden>
+      </label>`,
+    footer: `<button class="btn btn-ghost" data-close>取消</button>
+      <button class="btn btn-primary" id="importStart">开始导入</button>`,
+    onMount(root) {
+      const input = $('#importFile', root);
+      input.addEventListener('change', () => {
+        const f = input.files && input.files[0];
+        $('#fileName', root).textContent = f ? `已选择：${f.name}` : '';
+      });
+      $('#importStart', root).addEventListener('click', () => {
+        const f = input.files && input.files[0];
+        if (!f) { toast('请先选择需要导入的文件', 'warn'); return; }
+        closeModal();
+        toast(`文件「${f.name}」已提交导入，系统将在后台校验数据`);
+      });
+    }
+  });
+}
+
+function openGenerateModal() {
+  const projOpts = DB.projects.map(p => `<option value="${esc(p.id)}">${esc(p.id)} · ${esc(p.name)}</option>`).join('');
+  const algoOpts = DB.algos.map(a => `<option value="${esc(a.id)}">${esc(a.id)} · ${esc(a.type)}</option>`).join('');
+  openModal({
+    title: '生成策略库', sub: '基于工况网格与设备台账批量生成策略', size: 'md',
+    body: `<div class="section-note"><b>说明</b>系统将在所选项目的工况网格上运行 PSO 寻优，生成后自动写入策略库。</div>
+      <div class="form-row-2">
+        <div class="field"><label>所属项目<span class="en">project_id</span></label><div class="control"><select id="genProject">${projOpts}</select></div></div>
+        <div class="field"><label>使用算法参数<span class="en">optimization_algorithm_id</span></label><div class="control"><select id="genAlgo">${algoOpts}</select></div></div>
+      </div>
+      <div class="form-row-2" style="margin-top:14px">
+        <div class="field"><label>策略类型<span class="en">strategy_type</span></label><div class="control"><select id="genType"><option>完整</option><option>初始</option></select></div></div>
+        <div class="field"><label>生成数量<span class="en">generate_count</span></label><div class="control"><input id="genCount" type="number" step="1" value="20"><span class="unit">条</span></div></div>
+      </div>
+      <div class="progress-wrap" id="genProgress">
+        <div class="progress-track"><div class="progress-bar" id="genBar"></div></div>
+        <div class="progress-meta"><span id="genText">准备中…</span><span id="genPct">0%</span></div>
+      </div>`,
+    footer: `<button class="btn btn-ghost" data-close>取消</button>
+      <button class="btn btn-primary" id="genStart">开始生成</button>`,
+    onMount(root) {
+      let timer = null;
+      const startBtn = $('#genStart', root);
+      startBtn.addEventListener('click', () => {
+        if (timer) return;
+        startBtn.disabled = true;
+        startBtn.textContent = '生成中…';
+        $('#genProgress', root).classList.add('show');
+        let pct = 0;
+        timer = setInterval(() => {
+          pct = Math.min(100, pct + Math.random() * 16 + 7);
+          $('#genBar', root).style.width = pct.toFixed(0) + '%';
+          $('#genPct', root).textContent = pct.toFixed(0) + '%';
+          $('#genText', root).textContent = pct < 40 ? '构建工况网格…' : pct < 75 ? 'PSO 策略寻优中…' : pct < 100 ? '写入策略库…' : '生成完成';
+          if (pct >= 100) {
+            clearInterval(timer);
+            timer = null;
+            setTimeout(() => {
+              const pid = $('#genProject', root).value;
+              const algo = $('#genAlgo', root).value;
+              const type = $('#genType', root).value;
+              const seq = 720 + DB.strategies.length;
+              DB.strategies.unshift({
+                id: `ST-2026-${seq}`, name: `算法批量生成·${projectName(pid)}`, source: '算法生成',
+                project: pid, type, algo, creator: '系统', updater: '张策', utime: nowStr()
+              });
+              closeModal();
+              renderPage();
+              toast('策略库生成完成，已新增 1 条策略记录');
+            }, 500);
+          }
+        }, 320);
+      });
+      modalCleanup = () => { if (timer) clearInterval(timer); };
+    }
+  });
+}
+
+/* ======================= Events ======================= */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.dataset.act;
+  const id = el.dataset.id;
+
+  switch (act) {
+    case 'nav':
+      state.page = el.dataset.page;
+      renderPage();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      break;
+    case 'search': {
+      const page = el.dataset.page;
+      const inp = $(`[data-search="${page}"]`);
+      if (inp) state.search[page] = inp.value;
+      renderPage();
+      const again = $(`[data-search="${page}"]`);
+      if (again) { again.focus(); const val = again.value; again.value = ''; again.value = val; }
+      break;
+    }
+
+    case 'project-create': openProjectForm('create'); break;
+    case 'project-edit': { const p = DB.projects.find(x => x.id === id); if (p) openProjectForm('edit', p); break; }
+    case 'project-view': { const p = DB.projects.find(x => x.id === id); if (p) openProjectForm('view', p); break; }
+    case 'project-devices': { const p = DB.projects.find(x => x.id === id); if (p) openDevices(p); break; }
+    case 'project-del': {
+      const p = DB.projects.find(x => x.id === id);
+      if (p) confirmDelete(`${p.id} ${p.name}`, () => {
+        DB.projects = DB.projects.filter(x => x.id !== id);
+        renderPage();
+        toast('项目已删除');
+      });
+      break;
+    }
+
+    case 'run-create': openRunForm('create'); break;
+    case 'run-edit': { const r = DB.runs.find(x => x.id === id); if (r) openRunForm('edit', r); break; }
+    case 'run-view': { const r = DB.runs.find(x => x.id === id); if (r) openRunForm('view', r); break; }
+    case 'run-devices': { const r = DB.runs.find(x => x.id === id); if (r) openRunDevices(r); break; }
+    case 'run-template': toast('导入模版下载已开始，请留意浏览器下载记录'); break;
+    case 'run-import': openImportModal('数据导入'); break;
+    case 'run-del': {
+      const r = DB.runs.find(x => x.id === id);
+      if (r) confirmDelete(r.id, () => {
+        DB.runs = DB.runs.filter(x => x.id !== id);
+        renderPage();
+        toast('运行数据已删除');
+      });
+      break;
+    }
+
+    case 'algo-create': openAlgoForm('create'); break;
+    case 'algo-edit': { const a = DB.algos.find(x => x.id === id); if (a) openAlgoForm('edit', a); break; }
+    case 'algo-view': { const a = DB.algos.find(x => x.id === id); if (a) openAlgoForm('view', a); break; }
+    case 'algo-del': {
+      const a = DB.algos.find(x => x.id === id);
+      if (a) confirmDelete(`${a.id} ${a.type}`, () => {
+        DB.algos = DB.algos.filter(x => x.id !== id);
+        renderPage();
+        toast('算法参数配置已删除');
+      });
+      break;
+    }
+
+    case 'strategy-create': openStrategyForm('create'); break;
+    case 'strategy-edit': { const s = DB.strategies.find(x => x.id === id); if (s) openStrategyForm('edit', s); break; }
+    case 'strategy-view': { const s = DB.strategies.find(x => x.id === id); if (s) openStrategyForm('view', s); break; }
+    case 'strategy-control': { const s = DB.strategies.find(x => x.id === id); if (s) openControlModal(s); break; }
+    case 'strategy-template': toast('策略模版下载已开始，请留意浏览器下载记录'); break;
+    case 'strategy-import': openImportModal('导入策略'); break;
+    case 'strategy-generate': openGenerateModal(); break;
+    case 'strategy-del': {
+      const s = DB.strategies.find(x => x.id === id);
+      if (s) confirmDelete(`${s.id} ${s.name}`, () => {
+        DB.strategies = DB.strategies.filter(x => x.id !== id);
+        renderPage();
+        toast('策略已删除');
+      });
+      break;
+    }
+
+    case 'optimal-create': openOptimalForm('create'); break;
+    case 'optimal-edit': { const o = DB.optimal.find(x => x.id === id); if (o) openOptimalForm('edit', o); break; }
+    case 'optimal-control': { const o = DB.optimal.find(x => x.id === id); if (o) openControlModal(o); break; }
+    case 'optimal-realtime': { const o = DB.optimal.find(x => x.id === id); if (o) openLiveModal(o); break; }
+    case 'optimal-del': {
+      const o = DB.optimal.find(x => x.id === id);
+      if (o) confirmDelete(o.id, () => {
+        DB.optimal = DB.optimal.filter(x => x.id !== id);
+        renderPage();
+        toast('最优策略已删除');
+      });
+      break;
+    }
+  }
+});
+
+document.addEventListener('input', e => {
+  const inp = e.target.closest('[data-search]');
+  if (inp) state.search[inp.dataset.search] = inp.value;
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const inp = e.target.closest && e.target.closest('[data-search]');
+  if (!inp) return;
+  e.preventDefault();
+  const page = inp.dataset.search;
+  state.search[page] = inp.value;
+  renderPage();
+  const again = $(`[data-search="${page}"]`);
+  if (again) { again.focus(); const val = again.value; again.value = ''; again.value = val; }
+});
+
+/* ======================= Init ======================= */
+renderPage();
+</script>
+</body>
+</html>
