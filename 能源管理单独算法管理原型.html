@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>智慧能源管理 - 单独算法管理（非集成）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f3f5f9; color: #1f2937; font-size: 13px; }
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #eff6ff;
+    --sidebar-bg: #0f172a;
+    --sidebar-active: #1e293b;
+    --border: #e5e7eb;
+    --text-muted: #6b7280;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+  }
+
+  /* Top Bar */
+  .topbar { height: 56px; background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+  .topbar-left { display: flex; align-items: center; gap: 14px; }
+  .logo { width: 32px; height: 32px; background: linear-gradient(135deg, #2563eb, #06b6d4); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
+  .title { font-size: 15px; font-weight: 600; color: #0f172a; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .tenant-tag { padding: 4px 12px; background: var(--primary-light); color: var(--primary); border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .admin-info { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+  .admin-avatar { width: 30px; height: 30px; border-radius: 50%; background: #fbbf24; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+
+  /* Layout */
+  .layout { display: flex; min-height: calc(100vh - 56px); }
+  .sidebar { width: 240px; background: var(--sidebar-bg); color: #cbd5e1; padding: 16px 10px; }
+  .content { flex: 1; padding: 20px; overflow-y: auto; }
+
+  /* Menu */
+  .menu-group { margin-bottom: 6px; }
+  .menu-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: all .2s; font-size: 13px; color: #cbd5e1; }
+  .menu-item:hover { background: var(--sidebar-active); }
+  .menu-item.active { background: var(--primary); color: #fff; }
+  .menu-item .badge { min-width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,.1); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; padding: 0 6px; }
+  .menu-item.active .badge { background: rgba(255,255,255,.25); }
+
+  /* Content page */
+  .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .page-title { font-size: 18px; font-weight: 600; color: #0f172a; }
+
+  /* Toolbar */
+  .toolbar { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .toolbar input[type="text"], .toolbar select { padding: 7px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; transition: border .2s; background: #fff; min-width: 160px; }
+  .toolbar input:focus, .toolbar select:focus { border-color: var(--primary); }
+
+  /* Buttons */
+  .btn { padding: 7px 14px; border-radius: 6px; border: 1px solid transparent; font-size: 13px; cursor: pointer; transition: all .2s; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-default { background: #fff; border-color: var(--border); color: #374151; }
+  .btn-default:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { opacity: .9; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { opacity: .9; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-link { background: transparent; border: none; color: var(--primary); padding: 2px 6px; cursor: pointer; font-size: 12px; }
+  .btn-link:hover { text-decoration: underline; }
+  .btn-link.danger { color: var(--danger); }
+
+  /* Table */
+  .table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f8fafc; padding: 12px 14px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; color: #374151; }
+  tr:hover td { background: #fafbfc; }
+  .text-muted { color: var(--text-muted); }
+  .row-actions { white-space: nowrap; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: none; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; z-index: 100; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 12px; width: 100%; max-width: 860px; box-shadow: 0 20px 60px rgba(0,0,0,.15); overflow: hidden; animation: modalIn .2s ease; align-self: flex-start; margin-bottom: 40px; }
+  .modal-lg { max-width: 1040px; }
+  .modal-xl { max-width: 1200px; }
+  @keyframes modalIn { from { transform: translateY(-16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-header { padding: 16px 22px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #f8fafc, #fff); }
+  .modal-title { font-size: 16px; font-weight: 600; color: #0f172a; }
+  .modal-close { width: 30px; height: 30px; border-radius: 6px; border: none; background: transparent; cursor: pointer; font-size: 18px; color: #6b7280; display: flex; align-items: center; justify-content: center; }
+  .modal-close:hover { background: #f1f5f9; color: #0f172a; }
+  .modal-body { padding: 18px 22px; max-height: 65vh; overflow-y: auto; }
+  .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+
+  /* Accordion */
+  .accordion { display: flex; flex-direction: column; gap: 8px; }
+  .acc-item { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .acc-head { padding: 12px 16px; background: linear-gradient(135deg, #f8fafc, #fff); cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #0f172a; user-select: none; }
+  .acc-head .arrow { transition: transform .25s; color: var(--primary); font-size: 12px; }
+  .acc-item.open .acc-head .arrow { transform: rotate(180deg); }
+  .acc-item.open .acc-head { background: linear-gradient(135deg, #eff6ff, #fff); border-bottom: 1px solid var(--border); }
+  .acc-item.open .acc-body { display: block; }
+  .acc-body { display: none; padding: 16px; }
+
+  /* Form grid */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 18px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 12px; color: #475569; font-weight: 500; }
+  .form-label .unit { color: var(--text-muted); font-weight: 400; font-size: 11px; margin-left: 4px; }
+  .form-label .en { color: #94a3b8; font-size: 11px; font-weight: 400; margin-left: 4px; }
+  .form-group input, .form-group select { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; transition: border .2s; background: #fff; font-family: inherit; }
+  .form-group input:focus, .form-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+  .form-group input[readonly] { background: #f8fafc; color: #6b7280; cursor: not-allowed; }
+  .form-group .checkbox-wrap { display: flex; align-items: center; gap: 8px; padding-top: 3px; }
+  .form-group .checkbox-wrap input { width: 16px; height: 16px; cursor: pointer; }
+
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 14px; gap: 4px; }
+  .tab { padding: 10px 18px; cursor: pointer; font-size: 13px; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; font-weight: 500; }
+  .tab:hover { color: var(--primary); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Status tag */
+  .status-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+  .status-on { background: #d1fae5; color: #065f46; }
+  .status-off { background: #fee2e2; color: #991b1b; }
+  .status-draft { background: #fef3c7; color: #92400e; }
+
+  /* Editable table */
+  .editable-table input { width: 100%; padding: 5px 8px; border: 1px solid transparent; border-radius: 4px; font-size: 12px; background: #f8fafc; }
+  .editable-table input:hover, .editable-table input:focus { border-color: var(--primary); background: #fff; outline: none; }
+  .editable-table select { width: 100%; padding: 5px 8px; border: 1px solid transparent; border-radius: 4px; font-size: 12px; background: #f8fafc; }
+
+  /* Utils */
+  .icon { display: inline-block; width: 14px; height: 14px; vertical-align: middle; }
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+  .section-note { background: #f0f9ff; border-left: 3px solid var(--primary); padding: 8px 12px; border-radius: 0 6px 6px 0; color: #075985; font-size: 12px; margin-bottom: 10px; }
+
+  .sub-table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .sub-table-title { font-weight: 600; color: #334155; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">SE</div>
+    <div class="title">单独算法管理（非集成）</div>
+  </div>
+  <div class="topbar-right">
+    <div class="tenant-tag">🏢 智慧园区科技</div>
+    <div class="admin-info">
+      <div class="admin-avatar">张</div>
+      <span>张策 · 租户管理员</span>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar"></div>
+
+  <!-- CONTENT -->
+  <div class="content" id="content"></div>
+</div>
+
+<!-- ================ SCRIPT ================ -->
+<script>
+/* ---------- MENU ---------- */
+const MENU = [
+  { key: 'project',   level: '第一层', name: '项目信息',   icon: '📁' },
+  { key: 'history',   level: '第二层', name: '历史运行',   icon: '📊' },
+  { key: 'algo',      level: '第三层', name: '算法参数配置', icon: '⚙️' },
+  { key: 'strategy',  level: '第四层', name: '策略库',     icon: '🧠' },
+  { key: 'optimal',   level: '第五层', name: '最优策略',   icon: '🎯' }
+];
+
+/* ---------- MOCK DATA ---------- */
+const PROJECTS = [
+  { id:'P001', name:'智慧园区A栋', area:45000, hvac:38000, orientation:'南', wwr:0.45, occ:0.12, eq:25, light:18 },
+  { id:'P002', name:'智慧园区B栋', area:28000, hvac:24000, orientation:'东南', wwr:0.38, occ:0.10, eq:22, light:16 },
+  { id:'P003', name:'研发中心一期', area:62000, hvac:55000, orientation:'南', wwr:0.50, occ:0.15, eq:30, light:20 },
+  { id:'P004', name:'行政办公楼', area:18000, hvac:15000, orientation:'北', wwr:0.35, occ:0.08, eq:18, light:14 },
+];
+
+const HISTORY = [
+  { id:'H20250101', load:1250, project:'P001', totalPow:480, cop:2.60, eer:3.12, time:'2025-01-15 14:30' },
+  { id:'H20250102', load:980,  project:'P002', totalPow:360, cop:2.72, eer:3.25, time:'2025-01-15 15:00' },
+  { id:'H20250103', load:1800, project:'P003', totalPow:720, cop:2.50, eer:3.05, time:'2025-01-15 15:30' },
+  { id:'H20250104', load:620,  project:'P004', totalPow:240, cop:2.58, eer:3.18, time:'2025-01-15 16:00' },
+];
+
+const ALGO_CONFIGS = [
+  { id:'A001', type:'能耗代理+策略生成算法', creator:'张策', createTime:'2025-10-01 10:00', updater:'张策', updateTime:'2025-11-10 14:00' },
+  { id:'A002', type:'实时优化算法', creator:'张策', createTime:'2025-10-02 11:00', updater:'李明', updateTime:'2025-11-12 09:30' },
+  { id:'A003', type:'负荷预测算法', creator:'李明', createTime:'2025-10-05 09:00', updater:'李明', updateTime:'2025-11-15 16:00' },
+];
+
+const STRATEGIES = [
+  { id:'S001', name:'冷负荷-高-夏季', source:'算法生成', project:'P001', type:'完整', algo:'A001', creator:'系统', updater:'张策', updateTime:'2025-11-20 10:00' },
+  { id:'S002', name:'冷负荷-中-过渡季', source:'手动维护', project:'P001', type:'初始', algo:'A001', creator:'张策', updater:'张策', updateTime:'2025-11-18 15:00' },
+  { id:'S003', name:'冷负荷-低-冬季', source:'文件导入', project:'P002', type:'完整', algo:'A001', creator:'李明', updater:'李明', updateTime:'2025-11-15 11:00' },
+];
+
+const OPTIMAL = [
+  { id:'O001', project:'P001', creator:'实时优化', createTime:'2025-11-26 14:00:00', updater:'实时优化', updateTime:'2025-11-26 14:00:00' },
+  { id:'O002', project:'P002', creator:'实时优化', createTime:'2025-11-26 14:00:00', updater:'实时优化', updateTime:'2025-11-26 14:00:00' },
+  { id:'O003', project:'P003', creator:'实时优化', createTime:'2025-11-26 14:00:00', updater:'实时优化', updateTime:'2025-11-26 14:00:00' },
+];
+
+/* ---------- SIDEBAR ---------- */
+function renderSidebar(activeKey) {
+  const sb = document.getElementById('sidebar');
+  sb.innerHTML = MENU.map((m, i) => `
+    <div class="menu-group">
+      <div class="menu-item ${m.key === activeKey ? 'active' : ''}" data-key="${m.key}">
+        <span class="badge">${m.level.replace(/第.+层/, '').trim() || (i+1)}</span>
+        <span>${m.icon}</span>
+        <span>${m.level} · ${m.name}</span>
+      </div>
+    </div>
+  `).join('');
+  sb.querySelectorAll('.menu-item').forEach(el => {
+    el.addEventListener('click', () => render(el.dataset.key));
+  });
+}
+
+/* ---------- PAGE SWITCH ---------- */
+function render(key) {
+  renderSidebar(key);
+  const c = document.getElementById('content');
+  if (key === 'project') c.innerHTML = renderProjectPage();
+  else if (key === 'history') c.innerHTML = renderHistoryPage();
+  else if (key === 'algo') c.innerHTML = renderAlgoPage();
+  else if (key === 'strategy') c.innerHTML = renderStrategyPage();
+  else if (key === 'optimal') c.innerHTML = renderOptimalPage();
+
+  // bind row buttons
+  bindRowActions();
+}
+
+/* ================= PAGE 1: PROJECT ================= */
+function renderProjectPage() {
+  return `
+    <div class="page-header">
+      <div class="page-title">项目信息（第一层）</div>
+    </div>
+    <div class="toolbar">
+      <input type="text" placeholder="检索项目ID / 项目名称" id="projSearch" />
+      <button class="btn btn-primary btn-sm" onclick="searchTable('projSearch','projectTable')">🔍 检索</button>
+      <button class="btn btn-success btn-sm" data-action="project-create">➕ 创建项目信息</button>
+    </div>
+    <div class="table-wrap">
+      <table id="projectTable">
+        <thead>
+          <tr>
+            <th>项目ID</th><th>项目名称</th><th>建筑总面积 (m²)</th><th>空调服务面积 (m²)</th>
+            <th>建筑朝向</th><th>窗墙比</th><th>人员密度 (人/m²)</th><th>设备功率密度 (W/m²)</th>
+            <th>照明功率密度 (W/m²)</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${PROJECTS.map(p => `
+            <tr>
+              <td>${p.id}</td><td>${p.name}</td><td>${p.area}</td><td>${p.hvac}</td>
+              <td>${p.orientation}</td><td>${p.wwr}</td><td>${p.occ}</td><td>${p.eq}</td><td>${p.light}</td>
+              <td class="row-actions">
+                <button class="btn-link" data-action="project-edit" data-id="${p.id}">编辑</button>
+                <button class="btn-link" data-action="project-view" data-id="${p.id}">查看</button>
+                <button class="btn-link danger" data-action="project-delete" data-id="${p.id}">删除</button>
+                <button class="btn-link" data-action="project-device" data-id="${p.id}">配置设备概况</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ================= PAGE 2: HISTORY ================= */
+function renderHistoryPage() {
+  return `
+    <div class="page-header">
+      <div class="page-title">历史运行（第二层）</div>
+    </div>
+    <div class="toolbar">
+      <input type="text" placeholder="检索运行ID" id="histSearch" />
+      <button class="btn btn-primary btn-sm">🔍 检索</button>
+      <button class="btn btn-default btn-sm">📥 导入模版下载</button>
+      <button class="btn btn-default btn-sm">📤 数据导入</button>
+      <button class="btn btn-success btn-sm" data-action="history-create">➕ 创建系统整体运行数据</button>
+    </div>
+    <div class="table-wrap">
+      <table id="historyTable">
+        <thead>
+          <tr>
+            <th>运行ID</th><th>冷负荷 (kW)</th><th>所属项目</th><th>冷源系统总电功率 (kW)</th>
+            <th>系统综合能效比 EER</th><th>系统综合性能系数 COP</th><th>运行时间</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${HISTORY.map(h => `
+            <tr>
+              <td>${h.id}</td><td>${h.load}</td><td>${h.project}</td><td>${h.totalPow}</td>
+              <td><span style="color:#059669;font-weight:600">${h.eer}</span></td>
+              <td><span style="color:#059669;font-weight:600">${h.cop}</span></td>
+              <td>${h.time}</td>
+              <td class="row-actions">
+                <button class="btn-link" data-action="history-edit" data-id="${h.id}">编辑</button>
+                <button class="btn-link" data-action="history-view" data-id="${h.id}">查看</button>
+                <button class="btn-link danger" data-action="history-delete" data-id="${h.id}">删除</button>
+                <button class="btn-link" data-action="history-detail" data-id="${h.id}">设备运行明细</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ================= PAGE 3: ALGO ================= */
+function renderAlgoPage() {
+  return `
+    <div class="page-header">
+      <div class="page-title">算法参数配置（第三层）</div>
+    </div>
+    <div class="toolbar">
+      <input type="text" placeholder="检索算法参数配置ID / 算法类型" />
+      <button class="btn btn-primary btn-sm">🔍 检索</button>
+      <button class="btn btn-success btn-sm" data-action="algo-create">➕ 创建算法参数配置</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>配置ID</th><th>算法类型</th><th>创建人</th><th>创建时间</th><th>更新人</th><th>更新时间</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ALGO_CONFIGS.map(a => `
+            <tr>
+              <td>${a.id}</td><td><span class="status-tag status-draft">${a.type}</span></td>
+              <td>${a.creator}</td><td class="text-muted">${a.createTime}</td>
+              <td>${a.updater}</td><td class="text-muted">${a.updateTime}</td>
+              <td class="row-actions">
+                <button class="btn-link" data-action="algo-edit" data-type="${a.type}" data-id="${a.id}">编辑</button>
+                <button class="btn-link" data-action="algo-view" data-type="${a.type}" data-id="${a.id}">查看</button>
+                <button class="btn-link danger" data-action="algo-delete" data-id="${a.id}">删除</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ================= PAGE 4: STRATEGY ================= */
+function renderStrategyPage() {
+  return `
+    <div class="page-header">
+      <div class="page-title">策略库（第四层）</div>
+    </div>
+    <div class="toolbar">
+      <input type="text" placeholder="检索策略ID / 策略名称" />
+      <button class="btn btn-primary btn-sm">🔍 检索</button>
+      <button class="btn btn-default btn-sm">📥 模版下载</button>
+      <button class="btn btn-default btn-sm">📤 导入策略</button>
+      <button class="btn btn-success btn-sm" data-action="strategy-create">➕ 创建策略</button>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" data-action="strategy-gen">🔄 生成策略库</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>策略ID</th><th>策略名称</th><th>策略来源</th><th>所属项目</th><th>策略类型</th>
+            <th>使用策略生成算法参数</th><th>创建人</th><th>更新人</th><th>更新时间</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${STRATEGIES.map(s => `
+            <tr>
+              <td>${s.id}</td><td>${s.name}</td><td>${s.source}</td><td>${s.project}</td>
+              <td><span class="status-tag status-on">${s.type}</span></td>
+              <td>${s.algo}</td><td>${s.creator}</td><td>${s.updater}</td><td class="text-muted">${s.updateTime}</td>
+              <td class="row-actions">
+                <button class="btn-link" data-action="strategy-edit" data-id="${s.id}">编辑</button>
+                <button class="btn-link" data-action="strategy-view" data-id="${s.id}">查看</button>
+                <button class="btn-link danger" data-action="strategy-delete" data-id="${s.id}">删除</button>
+                <button class="btn-link" data-action="strategy-detail" data-id="${s.id}">策略控制明细</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ================= PAGE 5: OPTIMAL ================= */
+function renderOptimalPage() {
+  return `
+    <div class="page-header">
+      <div class="page-title">最优策略（第五层）</div>
+    </div>
+    <div class="toolbar">
+      <input type="text" placeholder="检索策略ID / 所属项目" />
+      <button class="btn btn-primary btn-sm">🔍 检索</button>
+      <button class="btn btn-success btn-sm" data-action="optimal-create">➕ 创建最优策略</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>策略ID</th><th>所属项目</th><th>创建人</th><th>创建时间</th><th>更新人</th><th>更新时间</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${OPTIMAL.map(o => `
+            <tr>
+              <td>${o.id}</td><td>${o.project}</td><td>${o.creator}</td><td class="text-muted">${o.createTime}</td>
+              <td>${o.updater}</td><td class="text-muted">${o.updateTime}</td>
+              <td class="row-actions">
+                <button class="btn-link" data-action="optimal-realtime" data-id="${o.id}">实时数据</button>
+                <button class="btn-link" data-action="optimal-edit" data-id="${o.id}">编辑</button>
+                <button class="btn-link danger" data-action="optimal-delete" data-id="${o.id}">删除</button>
+                <button class="btn-link" data-action="optimal-detail" data-id="${o.id}">策略控制明细</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ================= BIND ROW ACTIONS ================= */
+function bindRowActions() {
+  document.querySelectorAll('[data-action]').forEach(el => {
+    el.addEventListener('click', e => {
+      const act = el.dataset.action;
+      const id = el.dataset.id;
+      const type = el.dataset.type;
+
+      if (act === 'project-create')   openModal(projectModal({readonly:false, mode:'create'}));
+      else if (act === 'project-edit')  openModal(projectModal({readonly:false, mode:'edit', id}));
+      else if (act === 'project-view')  openModal(projectModal({readonly:true, mode:'view', id}));
+      else if (act === 'project-device') openModal(deviceOverviewModal(id));
+      else if (act === 'project-delete') confirmDelete(id);
+
+      else if (act === 'history-create') openModal(historyModal({readonly:false, mode:'create'}));
+      else if (act === 'history-edit')    openModal(historyModal({readonly:false, mode:'edit', id}));
+      else if (act === 'history-view')    openModal(historyModal({readonly:true, mode:'view', id}));
+      else if (act === 'history-detail')  openModal(deviceRunningDetailModal(id));
+      else if (act === 'history-delete')  confirmDelete(id);
+
+      else if (act === 'algo-create') openModal(algoCreateTypeModal());
+      else if (act === 'algo-edit')   openModal(algoModal({type, readonly:false, id}));
+      else if (act === 'algo-view')   openModal(algoModal({type, readonly:true, id}));
+      else if (act === 'algo-delete') confirmDelete(id);
+
+      else if (act === 'strategy-create') openModal(strategyModal({readonly:false, mode:'create'}));
+      else if (act === 'strategy-edit')   openModal(strategyModal({readonly:false, mode:'edit', id}));
+      else if (act === 'strategy-view')   openModal(strategyModal({readonly:true, mode:'view', id}));
+      else if (act === 'strategy-delete') confirmDelete(id);
+      else if (act === 'strategy-detail') openModal(strategyControlDetailModal(id));
+      else if (act === 'strategy-gen')    openModal({title:'生成策略库', body:`<div class="section-note">点击下方按钮将基于历史运行数据和能耗代理模型自动生成策略库，预计耗时 3~15 分钟。</div>
+        <button class="btn btn-primary" onclick="closeModal();toast('策略库生成任务已提交','success')">🚀 开始生成</button>`});
+
+      else if (act === 'optimal-create') openModal(optimalModal({readonly:false, mode:'create'}));
+      else if (act === 'optimal-edit')   openModal(optimalModal({readonly:false, mode:'edit', id}));
+      else if (act === 'optimal-realtime') openModal({title:'实时数据', body:`<div style="padding:10px 0"><div class="section-note">当前项目实时采集值展示（模拟）：</div>
+        <table class="editable-table"><tr><th>参数</th><th>数值</th><th>时间戳</th></tr>
+        <tr><td>当前冷负荷 Q_load</td><td>1250 kW</td><td>2025-11-26 14:02:11</td></tr>
+        <tr><td>冷冻水供水温度</td><td>7.2 ℃</td><td>2025-11-26 14:02:11</td></tr>
+        <tr><td>冷冻水总流量</td><td>185 m³/h</td><td>2025-11-26 14:02:11</td></tr>
+        <tr><td>冷冻水供回水压差</td><td>145 kPa</td><td>2025-11-26 14:02:11</td></tr>
+        <tr><td>室外干球温度</td><td>26.5 ℃</td><td>2025-11-26 14:02:11</td></tr>
+        <tr><td>系统总功率</td><td>480 kW</td><td>2025-11-26 14:02:11</td></tr></table>
+        </div>`, size:'modal-lg'});
+      else if (act === 'optimal-delete') confirmDelete(id);
+      else if (act === 'optimal-detail') openModal(strategyControlDetailModal(id));
+    });
+  });
+}
+
+function confirmDelete(id) {
+  openModal({
+    title: '删除确认',
+    body: `<p>确定要删除 <strong style="color:#dc2626">${id || '该项'}</strong> 吗？此操作不可撤销。</p>`,
+    footer: `<button class="btn btn-default" onclick="closeModal()">取消</button>
+             <button class="btn btn-danger" onclick="closeModal();toast('已删除','success')">确认删除</button>`,
+    hideFooter: true
+  });
+}
+
+/* ================= MODAL UTILS ================= */
+function openModal({title, body, footer, size, hideFooter, onOpen}) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay show';
+  overlay.innerHTML = `
+    <div class="modal ${size || ''}">
+      <div class="modal-header">
+        <div class="modal-title">${title}</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">${body}</div>
+      ${!hideFooter ? `<div class="modal-footer">${footer || `<button class="btn btn-default" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();toast('已保存','success')">保存</button>`}</div>` : ''}
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.body.appendChild(overlay);
+  if (onOpen) onOpen(overlay);
+  // init accordions & tabs within modal
+  overlay.querySelectorAll('.acc-head').forEach(h => h.addEventListener('click', () => {
+    h.parentElement.classList.toggle('open');
+  }));
+  overlay.querySelectorAll('[data-tab]').forEach(el => el.addEventListener('click', () => {
+    const wrap = el.closest('.tabs').parentElement;
+    wrap.querySelectorAll('[data-tab]').forEach(t => t.classList.remove('active'));
+    wrap.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    wrap.querySelector('.tab-content[data-tab-content="'+el.dataset.tab+'"]').classList.add('active');
+  }));
+}
+function closeModal() {
+  document.querySelectorAll('.modal-overlay.show').forEach(o => o.remove());
+}
+function toast(msg, type='info') {
+  const t = document.createElement('div');
+  const colors = {success:'#10b981',danger:'#ef4444',info:'#2563eb'};
+  t.style.cssText = `position:fixed;top:80px;left:50%;transform:translateX(-50%);background:${colors[type]};color:#fff;padding:10px 20px;border-radius:6px;z-index:9999;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2);transition:all .2s`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = 0; t.style.transform = 'translateX(-50%) translateY(-10px)'; setTimeout(() => t.remove(), 200); }, 1800);
+}
+function searchTable(inpId, tableId) {
+  const val = document.getElementById(inpId).value.toLowerCase();
+  document.querySelectorAll('#'+tableId+' tbody tr').forEach(tr => {
+    tr.style.display = tr.innerText.toLowerCase().includes(val) ? '' : 'none';
+  });
+}
+
+/* ================= FIELD TEMPLATES ================= */
+const ORIENTATIONS = ['东','南','西','北','东南','西南','东北','西北'];
+const COOLER_TYPES = ['离心式','螺杆式','涡旋式','磁悬浮离心'];
+const FORM_FIELD = (label, en, type, unit, dict, readonly=false) => {
+  const v = readonly ? 'readonly' : '';
+  let input = '';
+  if (dict) {
+    input = `<select ${v}>` + dict.map(d => `<option>${d}</option>`).join('') + `</select>`;
+  } else if (type === 'bool') {
+    input = `<div class="checkbox-wrap"><input type="checkbox" ${v} ${readonly?'disabled':''} checked /></div>`;
+  } else if (type === 'datetime') {
+    input = `<input type="text" ${v} value="2025-11-26 14:00:00" />`;
+  } else {
+    input = `<input type="text" ${v} placeholder="${type === 'float' || type === 'int' ? '—' : ''}" />`;
+  }
+  return `<div class="form-group"><label class="form-label">${label}${unit?`<span class="unit">(${unit})</span>`:''}<span class="en">${en}</span></label>${input}</div>`;
+};
+
+/* ================= PROJECT MODAL ================= */
+function projectModal({readonly, mode, id}) {
+  const title = readonly ? '查看项目信息' : (mode === 'create' ? '创建项目信息' : `编辑项目信息 - ${id || ''}`);
+  const form = `
+    <div class="form-group full" style="margin-bottom:14px">
+      <label class="form-label">项目ID</label>
+      <input type="text" value="${id || ''}" ${readonly?'readonly':''} />
+    </div>
+    <div class="form-group full" style="margin-bottom:14px">
+      <label class="form-label">项目名称</label>
+      <input type="text" value="${readonly?'智慧园区A栋':''}" ${readonly?'readonly':''} />
+    </div>
+
+    ${accGroup('建筑信息（预留：现阶段算法未读取）', [
+      FORM_FIELD('建筑总面积','building_area','float','m²'),
+      FORM_FIELD('空调服务面积','hvac_area','float','m²'),
+      FORM_FIELD('建筑朝向','building_orientation','enum','',ORIENTATIONS),
+      FORM_FIELD('窗墙比','window_wall_ratio','float',''),
+      FORM_FIELD('人员密度','occupancy_density','float','人/m²'),
+      FORM_FIELD('设备功率密度','equipment_power_density','float','W/m²'),
+      FORM_FIELD('照明功率密度','lighting_power_density','float','W/m²'),
+    ], readonly)}
+
+    ${accGroup('建筑围护（预留：现阶段算法未读取）', [
+      FORM_FIELD('建筑热容','building_thermal_capacity','float','kJ/K'),
+      FORM_FIELD('围护结构传热系数','envelope_heat_transfer','float','W/K'),
+      FORM_FIELD('太阳辐射得热系数','solar_gain_factor','float',''),
+      FORM_FIELD('内部发热基准','internal_heat_gain','float','kW'),
+      FORM_FIELD('围护结构综合传热系数','U_ENVELOPE','float','W/(m²·K)'),
+      FORM_FIELD('围护结构总面积','A_ENVELOPE','float','m²'),
+      FORM_FIELD('窗户总面积','A_WINDOW','float','m²'),
+      FORM_FIELD('玻璃太阳得热系数','SHGC','float',''),
+      FORM_FIELD('室内设定温度','INDOOR_SETPOINT_TEMP','float','℃'),
+      FORM_FIELD('建筑热惯性时间常数','BUILDING_THERMAL_TIME_CONSTANT','float','h'),
+      FORM_FIELD('内部发热基准(单/人)','INTERNAL_HEAT_GAIN_BASE','float','W/人'),
+    ], readonly)}
+
+    ${accGroup('环境信息（预留：现阶段算法未读取）', [
+      FORM_FIELD('当地全年最低气温','t_envir_local_annual_min','float','℃'),
+      FORM_FIELD('当地全年最高气温','t_envir_local_annual_max','float','℃'),
+      FORM_FIELD('当地全年最低湿球温度','t_wb_local_annual_min','float','℃'),
+      FORM_FIELD('当地全年最高湿球温度','t_wb_local_annual_max','float','℃'),
+      FORM_FIELD('当地平均相对湿度','RH_envir_local_avg','float','%'),
+    ], readonly)}
+
+    ${accGroup('空调系统信息（台数为项目静态参数，创建后不可运行时修改）', [
+      FORM_FIELD('冷水机组数量','num_chiller','int','台'),
+      FORM_FIELD('冷冻水泵数量','num_pump_ch','int','台'),
+      FORM_FIELD('冷却水泵数量','num_pump_co','int','台'),
+      FORM_FIELD('冷却塔数量','num_tower','int','台'),
+      FORM_FIELD('冷冻水设计供回水温差','delta_t_ch_default','float','℃'),
+      FORM_FIELD('冷却水设计供回水温差','delta_t_co_default','float','℃'),
+      FORM_FIELD('冷却塔设计逼近温度','approach_temp_default','float','℃'),
+      FORM_FIELD('冷冻水设计供回水压差','delta_P_ch_design','float','kPa'),
+      FORM_FIELD('冷冻水最小供回水压差设定','delta_P_ch_min','float','kPa'),
+      FORM_FIELD('冷却水设计供回水压差','delta_p_co_default','float','kPa'),
+      FORM_FIELD('冷冻水供水温度下限','t_ch_supply_min','float','℃'),
+      FORM_FIELD('冷冻水供水温度上限','t_ch_supply_max','float','℃'),
+      FORM_FIELD('冷冻水回水温度下限','t_ch_return_min','float','℃'),
+      FORM_FIELD('冷冻水回水温度上限','t_ch_return_max','float','℃'),
+      FORM_FIELD('冷却水进水温度上限','t_co_in_max','float','℃'),
+      FORM_FIELD('冷冻泵频率下限','pump_ch_Hz_min','float','Hz'),
+      FORM_FIELD('冷冻泵频率上限','pump_ch_Hz_max','float','Hz'),
+      FORM_FIELD('冷却泵频率下限','pump_co_Hz_min','float','Hz'),
+      FORM_FIELD('冷却泵频率上限','pump_co_Hz_max','float','Hz'),
+      FORM_FIELD('冷却塔频率下限','tower_Hz_min','float','Hz'),
+      FORM_FIELD('冷却塔频率上限','tower_Hz_max','float','Hz'),
+      FORM_FIELD('最不利末端压差设定','delta_P_worst_target','float','kPa'),
+      FORM_FIELD('最不利末端室内温度设定','t_worst_target','float','℃'),
+      FORM_FIELD('最不利末端室内湿度设定','RH_worst_target','float','%'),
+      FORM_FIELD('命令级安全过滤总开关','safety_filter_enabled','bool',''),
+      FORM_FIELD('单次最大调节步长','max_step_pct','float',''),
+      FORM_FIELD('每分钟最大调节速率','max_rate_per_min','float','%/min'),
+    ], readonly)}
+  `;
+  return {title, body: `<div class="accordion">${form}</div>`, size:'modal-xl', hideFooter: readonly, footer: readonly ? '' : ''};
+}
+
+function accGroup(title, fields, readonly, open=false) {
+  return `<div class="acc-item ${open?'open':''}"><div class="acc-head"><span>${title}</span><span class="arrow">▼</span></div>
+    <div class="acc-body"><div class="form-grid">${fields.join('')}</div></div></div>`;
+}
+
+/* ================= DEVICE OVERVIEW MODAL (1.4) ================= */
+function deviceOverviewModal(projectId) {
+  const tabs = [
+    { key:'chiller', name:'冷水机组', cols:['设备ID','设备类型','冷机类型','额定制冷量(kW)','额定COP','冷机额定功率(kW)','低负荷效率拐点','操作'], rows:[
+      ['C001','冷水机组','离心式',1200,5.2,231,0.35],
+      ['C002','冷水机组','离心式',1200,5.1,235,0.35],
+      ['C003','冷水机组','螺杆式',600,4.8,125,0.30],
+    ]},
+    { key:'pump_ch', name:'冷冻泵', cols:['设备ID','设备类型','额定功率(kW)','额定流量(m³/h)','额定扬程(m)','额定工况效率','最低运行频率(Hz)','操作'], rows:[
+      ['PCH01','冷冻泵',37,200,32,0.82,25],
+      ['PCH02','冷冻泵',37,200,32,0.82,25],
+    ]},
+    { key:'pump_co', name:'冷却泵', cols:['设备ID','设备类型','额定功率(kW)','额定流量(m³/h)','额定扬程(m)','额定工况效率','最低运行频率(Hz)','操作'], rows:[
+      ['PCO01','冷却泵',45,250,30,0.80,25],
+      ['PCO02','冷却泵',45,250,30,0.80,25],
+    ]},
+    { key:'tower', name:'冷却塔', cols:['设备ID','设备类型','额定风机功率(kW)','额定水流量(m³/h)','风机额定频率(Hz)','频率下限(Hz)','频率上限(Hz)','操作'], rows:[
+      ['T001','冷却塔',15,300,50,25,50],
+      ['T002','冷却塔',15,300,50,25,50],
+    ]},
+  ];
+  const body = tabs.map((t,i) => `
+    <div class="tab ${i===0?'active':''}" data-tab="${t.key}">${t.name}</div>
+  `).join('') + tabs.map((t,i) => `
+    <div class="tab-content ${i===0?'active':''}" data-tab-content="${t.key}">
+      <div class="sub-table-header">
+        <div class="sub-table-title">${t.name}（${t.rows.length} 台）</div>
+        <button class="btn btn-default btn-sm" onclick="addDeviceRow('${t.key}')">➕ 添加设备</button>
+      </div>
+      <table class="editable-table">
+        <thead><tr>${t.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+        <tbody id="dev-${t.key}">
+          ${t.rows.map(r => `<tr>${r.map((v,idx) => {
+            if (idx === 0) return `<td>${v}</td>`;
+            if (t.key === 'chiller' && idx === 2) return `<td><select><option>${v}</option>${COOLER_TYPES.map(x=>x===v?'':`<option>${x}</option>`).join('')}</select></td>`;
+            return `<td><input value="${v}" /></td>`;
+          }).join('')}<td><button class="btn-link">💾 保存</button><button class="btn-link danger">🗑 删除</button></td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `).join('');
+
+  window.addDeviceRow = function(key) {
+    const tbody = document.getElementById('dev-'+key);
+    const n = tbody.querySelectorAll('tr').length + 1;
+    const empty = tabs.find(t=>t.key===key).cols.length-1;
+    const cells = [`<td>NEW${n}</td>`] + Array.from({length:empty-1}, ()=>`<td><input /></td>`) + [`<td><button class="btn-link">💾 保存</button><button class="btn-link danger">🗑 删除</button></td>`];
+    tbody.insertAdjacentHTML('beforeend', `<tr>${cells.join('')}</tr>`);
+  };
+
+  return {title:`配置设备概况 - ${projectId}`, body: `<div class="tabs">${body}</div>`, size:'modal-xl'};
+}
+
+/* ================= HISTORY MODAL ================= */
+function historyModal({readonly, mode, id}) {
+  const title = readonly ? '查看系统整体运行数据' : (mode==='create' ? '创建系统整体运行数据' : '编辑系统整体运行数据');
+  const body = `
+    <div class="form-grid" style="margin-bottom:12px">
+      <div class="form-group"><label class="form-label">运行ID</label><input value="${id||''}" ${readonly?'readonly':''} /></div>
+      <div class="form-group"><label class="form-label">所属项目</label><input value="${readonly?'P001':''}" ${readonly?'readonly':''} /></div>
+      <div class="form-group"><label class="form-label">运行时间</label><input value="${readonly?'2025-11-26 14:00':''}" ${readonly?'readonly':''} /></div>
+    </div>
+
+    <div class="accordion">
+      ${accGroup('系统总指标', [
+        FORM_FIELD('冷负荷','Q_load','float','kW'),
+        FORM_FIELD('冷源系统总电功率','P_total','float','kW'),
+        FORM_FIELD('冷源系统COP（实测）','COP_system','float',''),
+        FORM_FIELD('系统综合能效比','EER','float',''),
+      ], readonly, true)}
+      ${accGroup('分项功率（可选，用于额定功率反推与交叉校验）', [
+        FORM_FIELD('冷水机组总电功率','P_chiller_total','float','kW'),
+        FORM_FIELD('冷冻水泵组总电功率','P_pump_ch_total','float','kW'),
+        FORM_FIELD('冷却水泵组总电功率','P_pump_co_total','float','kW'),
+        FORM_FIELD('冷却塔组总电功率','P_tower_total','float','kW'),
+      ], readonly)}
+      ${accGroup('环境与工况', [
+        FORM_FIELD('室外环境干球温度','t_envir','float','℃'),
+        FORM_FIELD('室外环境相对湿度','RH_envir','float','%'),
+        FORM_FIELD('室外湿球温度','t_wb','float','℃'),
+      ], readonly)}
+      ${accGroup('负荷预测可选特征（仅负荷预测读取）', [
+        FORM_FIELD('人员占有率','occupancy_rate','float',''),
+        FORM_FIELD('太阳辐射强度','solar_radiation','float','W/m²'),
+        FORM_FIELD('室外风速','wind_speed','float','m/s'),
+      ], readonly)}
+      ${accGroup('冷冻水系统运行', [
+        FORM_FIELD('总干管供水温度','t_ch_supply','float','℃'),
+        FORM_FIELD('总干管回水温度','t_ch_return','float','℃'),
+        FORM_FIELD('冷冻水系统总流量','G_ch_total','float','m³/h'),
+        FORM_FIELD('冷冻水管网供回水压差','delta_P_ch','float','kPa'),
+        FORM_FIELD('冷冻水总管供水压力','p_ch_supply','float','kPa'),
+        FORM_FIELD('冷冻水总管回水压力','p_ch_return','float','kPa'),
+        FORM_FIELD('最不利末端压差','delta_P_worst','float','kPa'),
+        FORM_FIELD('最不利末端室内干球温度','t_worst','float','℃'),
+        FORM_FIELD('最不利末端室内相对湿度','RH_worst','float','%'),
+      ], readonly)}
+      ${accGroup('冷却水系统运行', [
+        FORM_FIELD('冷却水出水温度（冷凝器进水）','t_co_in','float','℃'),
+        FORM_FIELD('冷却水回水温度（冷凝器出水）','t_co_back','float','℃'),
+        FORM_FIELD('冷却水系统总流量','G_co_total','float','m³/h'),
+        FORM_FIELD('冷却水系统供回水压差','delta_P_co','float','kPa'),
+        FORM_FIELD('冷却水总管供水压力','p_co_supply','float','kPa'),
+        FORM_FIELD('冷却水总管回水压力','p_co_return','float','kPa'),
+      ], readonly)}
+    </div>
+  `;
+  return {title, body, size:'modal-xl', hideFooter:readonly};
+}
+
+/* ================= DEVICE RUNNING DETAIL MODAL (2.4) ================= */
+function deviceRunningDetailModal(hid) {
+  const tabs = [
+    { key:'chiller', name:'冷水机组', cols:['设备ID','设备类型','启停状态','实际冷量(kW)','机组自报冷量(kW)','实时功率(kW)','冷冻水流量(m³/h)','冷却水流量(m³/h)','COP','冷冻水出水(℃)','冷冻水回水(℃)','冷却水进水(℃)','冷却水出水(℃)','操作'], rows:[
+      ['C001','冷水机组',1,1180,1190,228,180,210,5.18,7.2,11.5,32.5,38.2],
+      ['C002','冷水机组',1,1150,1160,225,175,205,5.11,7.3,11.4,32.6,38.3],
+      ['C003','冷水机组',0,0,0,0,0,0,0,0,0,0,0],
+    ]},
+    { key:'pump_ch', name:'冷冻泵', cols:['设备ID','设备类型','启停状态','功率(kW)','运行频率(Hz)','水泵扬程(m)','水泵流量(m³/h)','进出口压差(kPa)','操作'], rows:[
+      ['PCH01','冷冻泵',1,32,42,30,190,145],
+      ['PCH02','冷冻泵',1,31,41,30,185,142],
+    ]},
+    { key:'pump_co', name:'冷却泵', cols:['设备ID','设备类型','启停状态','功率(kW)','运行频率(Hz)','水泵扬程(m)','水泵流量(m³/h)','进出口压差(kPa)','操作'], rows:[
+      ['PCO01','冷却泵',1,38,44,28,230,120],
+      ['PCO02','冷却泵',1,39,45,28,235,122],
+    ]},
+    { key:'tower', name:'冷却塔', cols:['设备ID','设备类型','启停状态','风机功率(kW)','运行频率(Hz)','进水温度(℃)','出水温度(℃)','冷却水流量(m³/h)','进风干球(℃)','进风湿度(%)','进风湿球(℃)','出风湿球(℃)','出风干球(℃)','出风湿度(%)','操作'], rows:[
+      ['T001','冷却塔',1,12,42,32.5,27.8,230,35,55,27.5,26.8,30,60],
+      ['T002','冷却塔',1,12,41,32.6,27.9,235,35,55,27.5,26.8,30,60],
+    ]},
+  ];
+  const body = tabs.map((t,i) => `<div class="tab ${i===0?'active':''}" data-tab="${t.key}">${t.name}</div>`).join('') +
+    tabs.map((t,i) => `<div class="tab-content ${i===0?'active':''}" data-tab-content="${t.key}"><table class="editable-table"><thead><tr>${t.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>
+      ${t.rows.map(r => `<tr>${r.map((v,idx) => {
+        if (idx === 0 || idx === 1) return `<td>${v}</td>`;
+        if (idx === 2) return `<td><span class="status-tag ${v?'status-on':'status-off'}">${v?'运行':'停止'}</span></td>`;
+        return `<td><input value="${v}" /></td>`;
+      }).join('')}<td><button class="btn-link">💾 保存</button><button class="btn-link danger">🗑 删除</button></td></tr>`).join('')}
+    </tbody></table></div>`).join('');
+  return {title:`设备运行明细 - ${hid}`, body: `<div class="tabs">${body}</div>`, size:'modal-xl'};
+}
+
+/* ================= ALGO CREATE TYPE ================= */
+function algoCreateTypeModal() {
+  return {
+    title:'选择算法类型',
+    body:`<div style="padding:8px 0 18px">请选择要创建的算法参数配置类型：</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${['能耗代理+策略生成算法','实时优化算法','负荷预测算法'].map((t,i)=>`
+          <button class="btn btn-default" style="justify-content:flex-start;padding:12px 16px" onclick="closeModal();openModal(algoModal({type:'${t}',readonly:false}))">
+            ⚙️  ${t}
+          </button>`).join('')}
+      </div>`
+  };
+}
+
+/* ================= ALGO MODAL ================= */
+function algoModal({type, readonly, id}) {
+  const title = (readonly ? '查看' : id ? '编辑' : '创建') + `算法参数配置 - ${type}`;
+
+  let groups = '';
+  if (type === '能耗代理+策略生成算法') {
+    groups = `
+      ${accGroup('能耗代理模型（RandomForest 残差模型）', [
+        FORM_FIELD('基学习器数量','model_n_estimators','int','棵'),
+        FORM_FIELD('模型最大深度','model_max_depth','int','层'),
+        FORM_FIELD('内部节点分裂最小样本数','model_min_samples_split','int','个'),
+        FORM_FIELD('叶节点最小样本数','model_min_samples_leaf','int','个'),
+        FORM_FIELD('单次分裂可选特征数','model_max_features','enum','',['sqrt','log2','float']),
+        FORM_FIELD('是否使用样本重采样','model_bootstrap','bool',''),
+        FORM_FIELD('重采样子样本比例','model_max_samples','float',''),
+        FORM_FIELD('训练/测试划分比例','train_test_split','float',''),
+        FORM_FIELD('随机种子','random_state','int',''),
+        FORM_FIELD('最小训练样本数','min_train_samples','int','个'),
+      ], readonly, true)}
+      ${accGroup('模型验收与替换', [
+        FORM_FIELD('RMSE达标阈值','rmse_threshold','float','kW'),
+        FORM_FIELD('MAPE达标阈值','mape_threshold','float','%'),
+        FORM_FIELD('R²达标阈值','r2_threshold','float',''),
+        FORM_FIELD('交叉验证RMSE阈值','cv_rmse_threshold','float','%'),
+        FORM_FIELD('R²劣化容差','r2_tolerance','float',''),
+        FORM_FIELD('MAPE劣化容差','mape_tolerance','float','%'),
+      ], readonly)}
+      ${accGroup('策略寻优（PSO）', [
+        FORM_FIELD('粒子群规模','optimizer_population_size','int','个'),
+        FORM_FIELD('最大迭代次数','optimizer_max_iterations','int','次'),
+        FORM_FIELD('惯性权重 w','optimizer_inertia_weight','float',''),
+        FORM_FIELD('认知系数 c1','optimizer_cognitive_coeff','float',''),
+        FORM_FIELD('社会系数 c2','optimizer_social_coeff','float',''),
+        FORM_FIELD('收敛阈值','optimizer_convergence_threshold','float',''),
+        FORM_FIELD('PSO随机种子','optimizer_random_state','int',''),
+        FORM_FIELD('重启次数','optimizer_n_restarts','int','次'),
+        FORM_FIELD('鲁棒采样次数','optimizer_n_robust_samples','int','次'),
+        FORM_FIELD('惯性权重衰减下限','optimizer_inertia_weight_end','float',''),
+        FORM_FIELD('停滞重启阈值','optimizer_stagnation_patience','int','轮'),
+        FORM_FIELD('供水温度跟踪窗口','optimizer_t_ch_supply_window','float','℃'),
+      ], readonly)}
+      ${accGroup('工况网格（搜索空间维度）', [
+        FORM_FIELD('冷负荷网格-生成方式','grid_q_load_mode','enum','',['capacity_based','manual']),
+        FORM_FIELD('冷负荷网格-下限','grid_q_load_min','float','kW'),
+        FORM_FIELD('冷负荷网格-上限','grid_q_load_max','float','kW'),
+        FORM_FIELD('冷负荷网格-步长比例','grid_q_load_step_ratio','float',''),
+        FORM_FIELD('冷负荷网格-步长','grid_q_load_step','float','kW'),
+        FORM_FIELD('室外干球网格-下限','grid_t_envir_min','float','℃'),
+        FORM_FIELD('室外干球网格-上限','grid_t_envir_max','float','℃'),
+        FORM_FIELD('室外干球网格-步长','grid_t_envir_step','float','℃'),
+        FORM_FIELD('室外湿球网格-下限','grid_t_wb_min','float','℃'),
+        FORM_FIELD('室外湿球网格-上限','grid_t_wb_max','float','℃'),
+        FORM_FIELD('室外湿球网格-步长','grid_t_wb_step','float','℃'),
+        FORM_FIELD('供水温度网格-下限','grid_t_ch_supply_min','float','℃'),
+        FORM_FIELD('供水温度网格-上限','grid_t_ch_supply_max','float','℃'),
+        FORM_FIELD('供水温度网格-步长','grid_t_ch_supply_step','float','℃'),
+        FORM_FIELD('冷冻水压差网格-下限','grid_delta_p_ch_min','float','kPa'),
+        FORM_FIELD('冷冻水压差网格-上限','grid_delta_p_ch_max','float','kPa'),
+        FORM_FIELD('冷冻水压差网格-步长','grid_delta_p_ch_step','float','kPa'),
+        FORM_FIELD('供回水温差网格-下限','grid_delta_t_ch_min','float','℃'),
+        FORM_FIELD('供回水温差网格-上限','grid_delta_t_ch_max','float','℃'),
+        FORM_FIELD('供回水温差网格-步长','grid_delta_t_ch_step','float','℃'),
+        FORM_FIELD('室外湿度网格-是否启用','grid_rh_envir_enabled','bool',''),
+        FORM_FIELD('室外湿度网格-下限','grid_rh_envir_min','float','%'),
+        FORM_FIELD('室外湿度网格-上限','grid_rh_envir_max','float','%'),
+        FORM_FIELD('室外湿度网格-步长','grid_rh_envir_step','float','%'),
+        FORM_FIELD('气象季节配对-气候分区','grid_weather_preset','enum','',['none','severe_cold','cold','hot_summer_cold_winter','hot_summer_warm_winter','temperate']),
+      ], readonly)}
+      ${accGroup('建库门槛与容量约束', [
+        FORM_FIELD('工况点邻域最少支撑样本数','envelope_min_support','int','个'),
+        FORM_FIELD('冷机容量安全系数','chiller_capacity_safety_factor','float',''),
+      ], readonly)}
+      ${accGroup('策略库重建判据', [
+        FORM_FIELD('库龄重建阈值','rebuild_max_age_days','int','天'),
+        FORM_FIELD('最小重建间隔','rebuild_min_interval_days','int','天'),
+        FORM_FIELD('新增样本占比重建阈值','rebuild_new_sample_ratio','float',''),
+        FORM_FIELD('EER漂移重建阈值','rebuild_eer_drift_threshold','float',''),
+        FORM_FIELD('漂移持续天数','rebuild_drift_sustain_days','int','天'),
+        FORM_FIELD('RL经验继承开关','rebuild_inherit_rl_rows','bool',''),
+        FORM_FIELD('RL经验继承EER容差','rebuild_inherit_eer_tolerance','float',''),
+        FORM_FIELD('RL经验单次继承上限','rebuild_inherit_max_rows','int','行'),
+      ], readonly)}
+    `;
+  } else if (type === '实时优化算法') {
+    groups = `
+      ${accGroup('KNN', [
+        FORM_FIELD('KNN冷负荷比对盲区权重','deadline_q','float',''),
+        FORM_FIELD('KNN环境温度盲区权重','deadline_t_envir','float',''),
+        FORM_FIELD('KNN湿度盲区权重','deadline_rh_envir','float',''),
+        FORM_FIELD('KNN供水温度盲区权重','deadline_t_chilling_out','float',''),
+        FORM_FIELD('KNN流量盲区权重','deadline_g_chilling_user','float',''),
+        FORM_FIELD('KNN压差盲区权重','deadline_delta_p_bypass_chilling','float',''),
+        FORM_FIELD('KNN第一层目标策略数','k1_target','int','条'),
+        FORM_FIELD('KNN第一层最大迭代次数','k1_max_iter','int','次'),
+        FORM_FIELD('KNN第二层目标策略数','k2_target','int','条'),
+        FORM_FIELD('KNN第二层最大迭代次数','k2_max_iter','int','次'),
+        FORM_FIELD('KNN第三层目标策略数','k3_target','int','条'),
+        FORM_FIELD('KNN第三层最大迭代次数','k3_max_iter','int','次'),
+      ], readonly, true)}
+      ${accGroup('修正参数', [
+        FORM_FIELD('流量修正系数','g_chilling_min_correction_factor','float',''),
+        FORM_FIELD('压差修正系数','delta_p_chilling_min_correction_factor','float',''),
+        FORM_FIELD('温度迭代步长','delta_t_accuracy','float','℃'),
+      ], readonly)}
+      ${accGroup('最不利末端修正', [
+        FORM_FIELD('压差修正系数1(压差控制)','ch_worst_correction_p1','float',''),
+        FORM_FIELD('温度修正系数1(压差控制)','ch_worst_correction_t1','float','℃'),
+        FORM_FIELD('回水温度修正系数1(压差控制)','ch_worst_correction_t2','float','℃'),
+        FORM_FIELD('湿度修正系数1(压差控制)','ch_worst_correction_rh1','float','%'),
+        FORM_FIELD('压差修正系数2(温差控制)','ch_worst_correction_p2','float',''),
+        FORM_FIELD('温度修正系数2(温差控制)','ch_worst_correction_t2_2','float','℃'),
+        FORM_FIELD('回水温度修正系数2(温差控制)','ch_worst_correction_t3','float','℃'),
+        FORM_FIELD('湿度修正系数2(温差控制)','ch_worst_correction_rh2','float','%'),
+        FORM_FIELD('回水温度修正(供水温度控制)','ch_worst_correction_t4','float','℃'),
+        FORM_FIELD('湿度修正(供水温度控制)','ch_worst_correction_rh3','float','%'),
+        FORM_FIELD('冷却水温度修正系数','co_correction_t1','float','℃'),
+      ], readonly)}
+      ${accGroup('安全过滤器', [
+        FORM_FIELD('命令级安全过滤开关','safety_filter_enabled','bool',''),
+        FORM_FIELD('单次变化幅度上限','max_step_pct','float',''),
+        FORM_FIELD('每分钟变化速率上限','max_rate_per_min','float','%/min'),
+      ], readonly)}
+      ${accGroup('调度配置与接口治理', [
+        FORM_FIELD('自动定时优化开关','scheduler_enabled','bool',''),
+        FORM_FIELD('定时优化执行间隔','run_interval','int','s'),
+        FORM_FIELD('单次优化等待上限','optimize_timeout_s','float','s'),
+        FORM_FIELD('相同请求体结果缓存有效期','idempotent_ttl_s','float','s'),
+        FORM_FIELD('单IP限流窗口内最大请求数','rate_limit_max_requests','int','次'),
+        FORM_FIELD('限流窗口长度','rate_limit_window_s','float','s'),
+      ], readonly)}
+      ${accGroup('RL探索', [
+        FORM_FIELD('ε-greedy探索概率','exploration_prob','float',''),
+        FORM_FIELD('探索等待时长','exploration_duration','float','s'),
+        FORM_FIELD('动态探索-基础时间','base_exploration_time','float','s'),
+        FORM_FIELD('每台主机增量','per_chiller_increment','float','s'),
+        FORM_FIELD('最小探索时间','min_exploration_time','float','s'),
+        FORM_FIELD('最大探索时间','max_exploration_time','float','s'),
+        FORM_FIELD('EER提升阈值','rl_eer_improvement_threshold','float',''),
+        FORM_FIELD('时间达标比例','rl_time_elapsed_ratio','float',''),
+        FORM_FIELD('EER变化裕度','eer_improve_margin','float',''),
+      ], readonly)}
+      ${accGroup('RL扰动范围', [
+        FORM_FIELD('供水温度扰动范围','temp_exploration_range','float','℃'),
+        FORM_FIELD('冷冻泵频率扰动范围','pump_ch_exploration_range','float','比例'),
+        FORM_FIELD('冷却泵频率扰动范围','pump_co_exploration_range','float','比例'),
+        FORM_FIELD('冷却塔频率扰动范围','tower_exploration_range','float','比例'),
+      ], readonly)}
+      ${accGroup('RL Q-table', [
+        FORM_FIELD('Q表冷负荷最小值','rl_q_q_load_min','float','kW'),
+        FORM_FIELD('Q表冷负荷最大值','rl_q_q_load_max','float','kW'),
+        FORM_FIELD('Q表冷负荷等分数','rl_q_q_load_bins','int','个'),
+        FORM_FIELD('Q表供水温度最小值','rl_q_t_chilling_min','float','℃'),
+        FORM_FIELD('Q表供水温度最大值','rl_q_t_chilling_max','float','℃'),
+        FORM_FIELD('Q表供水温度等分数','rl_q_t_chilling_bins','int','个'),
+        FORM_FIELD('Q表冷冻水流量最小值','rl_q_g_chilling_min','float','m³/h'),
+        FORM_FIELD('Q表冷冻水流量最大值','rl_q_g_chilling_max','float','m³/h'),
+        FORM_FIELD('Q表冷冻水流量等分数','rl_q_g_chilling_bins','int','个'),
+        FORM_FIELD('Q表压差最小值','rl_q_delta_p_min','float','kPa'),
+        FORM_FIELD('Q表压差最大值','rl_q_delta_p_max','float','kPa'),
+        FORM_FIELD('Q表压差等分数','rl_q_delta_p_bins','int','个'),
+        FORM_FIELD('Q表环境温度最小值','rl_q_t_envir_min','float','℃'),
+        FORM_FIELD('Q表环境温度最大值','rl_q_t_envir_max','float','℃'),
+        FORM_FIELD('Q表环境温度等分数','rl_q_t_envir_bins','int','个'),
+        FORM_FIELD('Q表环境湿度最小值','rl_q_rh_envir_min','float','%'),
+        FORM_FIELD('Q表环境湿度最大值','rl_q_rh_envir_max','float','%'),
+        FORM_FIELD('Q表环境湿度等分数','rl_q_rh_envir_bins','int','个'),
+      ], readonly)}
+      ${accGroup('RL探索边界', [
+        FORM_FIELD('RL供水温度探索最小','rl_temp_min','float','℃'),
+        FORM_FIELD('RL供水温度探索最大','rl_temp_max','float','℃'),
+        FORM_FIELD('RL冷冻水温差探索最小','rl_delta_t_ch_min','float','℃'),
+        FORM_FIELD('RL冷冻水温差探索最大','rl_delta_t_ch_max','float','℃'),
+        FORM_FIELD('RL冷却水温差探索最小','rl_delta_t_co_min','float','℃'),
+        FORM_FIELD('RL冷却水温差探索最大','rl_delta_t_co_max','float','℃'),
+        FORM_FIELD('RL冷却塔出水温度探索最小','rl_tower_min','float','℃'),
+        FORM_FIELD('RL冷却塔出水温度探索最大','rl_tower_max','float','℃'),
+        FORM_FIELD('RL供回水压差探索最小','rl_delta_p_min','float','kPa'),
+        FORM_FIELD('RL供回水压差探索最大','rl_delta_p_max','float','kPa'),
+        FORM_FIELD('RL压差探索幅度','rl_delta_p_exploration_range','float','kPa'),
+      ], readonly)}
+      ${accGroup('PID总控', [
+        FORM_FIELD('PID使能开关','label_pid','int',''),
+        FORM_FIELD('PID采样时间','dt_sampling','float','s'),
+      ], readonly)}
+      ${accGroup('PID-冷冻水泵', [
+        FORM_FIELD('比例系数','kp','float',''),
+        FORM_FIELD('积分时间','ti','float','s'),
+        FORM_FIELD('微分时间','td','float','s'),
+        FORM_FIELD('执行周期','time_constant','float','s'),
+        FORM_FIELD('单次调整限幅','frequency_range','float','Hz'),
+      ], readonly)}
+      ${accGroup('PID-冷却水泵', [
+        FORM_FIELD('比例系数','kp_cooling_pid','float',''),
+        FORM_FIELD('积分时间','ti_cooling_pid','float','s'),
+        FORM_FIELD('微分时间','td_cooling_pid','float','s'),
+        FORM_FIELD('执行周期','time_constant_cooling','float','s'),
+        FORM_FIELD('单次调整限幅','frequency_range_cooling','float','Hz'),
+      ], readonly)}
+      ${accGroup('PID-冷却塔', [
+        FORM_FIELD('比例系数','kp_tower_pid','float',''),
+        FORM_FIELD('积分时间','ti_tower_pid','float','s'),
+        FORM_FIELD('微分时间','td_tower_pid','float','s'),
+        FORM_FIELD('执行周期','time_constant_tower','float','s'),
+        FORM_FIELD('单次调整限幅','frequency_range_tower','float','Hz'),
+      ], readonly)}
+      ${accGroup('PID-压差', [
+        FORM_FIELD('比例系数','kp_pressure_pid','float',''),
+        FORM_FIELD('积分时间','ti_pressure_pid','float','s'),
+        FORM_FIELD('微分时间','td_pressure_pid','float','s'),
+        FORM_FIELD('执行周期','time_constant_pressure','float','s'),
+        FORM_FIELD('单次调整限幅','frequency_range_pressure','float','Hz'),
+      ], readonly)}
+    `;
+  } else if (type === '负荷预测算法') {
+    groups = `
+      ${accGroup('模型配置', [
+        FORM_FIELD('主选模型','model_primary','enum','',['xgboost','lightgbm','random_forest']),
+        FORM_FIELD('备用模型1（按序回退）','model_fallback_1','enum','',['xgboost','lightgbm','random_forest']),
+        FORM_FIELD('备用模型2（按序回退）','model_fallback_2','enum','',['xgboost','lightgbm','random_forest']),
+      ], readonly, true)}
+      ${accGroup('时序粒度', [
+        FORM_FIELD('特征窗口时长','feature_window_hours','int','h'),
+        FORM_FIELD('推理历史窗口最小行数','min_inference_rows','int','行'),
+        FORM_FIELD('推理历史窗口最小时长','min_inference_hours','float','h'),
+        FORM_FIELD('训练最小样本数','min_train_samples','int','行'),
+      ], readonly)}
+      ${accGroup('预测配置', [
+        FORM_FIELD('预测时域','predict_horizon_hours','int','h'),
+        FORM_FIELD('预测模式','predict_mode','enum','',['point','interval','quantile']),
+        FORM_FIELD('分位数列表','quantiles','string',''),
+        FORM_FIELD('分位数区间随步长膨胀','quantile_horizon_inflation','bool',''),
+      ], readonly)}
+      ${accGroup('训练参数', [
+        FORM_FIELD('历史训练数据天数','history_days','int','天'),
+        FORM_FIELD('训练/测试分割比例','train_test_split','float',''),
+        FORM_FIELD('验证集占比','validation_frac','float',''),
+      ], readonly)}
+      ${accGroup('XGBoost参数', [
+        FORM_FIELD('树数量上限','xgb_n_estimators','int','棵'),
+        FORM_FIELD('树最大深度','xgb_max_depth','int','层'),
+        FORM_FIELD('学习率','xgb_learning_rate','float',''),
+        FORM_FIELD('样本采样率','xgb_subsample','float',''),
+        FORM_FIELD('特征采样率','xgb_colsample_bytree','float',''),
+        FORM_FIELD('叶节点最小样本权重','xgb_min_child_weight','float',''),
+        FORM_FIELD('L1正则系数','xgb_reg_alpha','float',''),
+        FORM_FIELD('L2正则系数','xgb_reg_lambda','float',''),
+        FORM_FIELD('早停轮数','xgb_early_stopping','int','轮'),
+      ], readonly)}
+      ${accGroup('模型验收', [
+        FORM_FIELD('wMAPE达标阈值','mape_threshold','float','%'),
+        FORM_FIELD('R²达标阈值','r2_threshold','float',''),
+        FORM_FIELD('过拟合gap阈值','overfit_gap_threshold','float',''),
+        FORM_FIELD('MAPE近零过滤阈值','mape_min_abs_load','float','kW'),
+        FORM_FIELD('运行时段负荷下限','operating_min_load','float','kW'),
+      ], readonly)}
+      ${accGroup('降级判定', [
+        FORM_FIELD('历史窗口最大允许断档','max_staleness_hours','float','h'),
+        FORM_FIELD('停机行剔除占比告警阈值','stop_row_drop_warn_ratio','float',''),
+        FORM_FIELD('合成气象标记为降级','weather_synthetic_degraded','bool',''),
+      ], readonly)}
+      ${accGroup('预测-实测对账', [
+        FORM_FIELD('预测-实测对账开关','accuracy_tracking_enabled','bool',''),
+        FORM_FIELD('对账滚动窗口样本数','accuracy_window_size','int','行'),
+        FORM_FIELD('漂移告警连续帧数','drift_alert_frames','int','帧'),
+      ], readonly)}
+    `;
+  }
+  return {title, body: `<div class="accordion">${groups}</div>`, size:'modal-xl', hideFooter:readonly};
+}
+
+/* ================= STRATEGY MODAL ================= */
+function strategyModal({readonly, mode, id}) {
+  const title = readonly ? '查看策略' : (mode==='create' ? '创建策略' : '编辑策略');
+  const body = `
+    <div class="accordion">
+      ${accGroup('基础信息', [
+        FORM_FIELD('策略编号/标识','strategy_name','string',''),
+        FORM_FIELD('策略适用季节','season','string',''),
+        FORM_FIELD('策略来源','strategy_source','enum','',['手动维护','文件导入','算法生成']),
+        FORM_FIELD('所属项目','project_id','string',''),
+        FORM_FIELD('策略类型','strategy_type','enum','',['初始','完整']),
+        FORM_FIELD('使用优化算法参数','optimization_algorithm_id','string',''),
+      ], readonly, true)}
+      ${accGroup('工况匹配参数', [
+        FORM_FIELD('冷负荷','Q_load','float','kW'),
+        FORM_FIELD('冷冻水供水温度','t_ch_supply','float','℃'),
+        FORM_FIELD('冷冻水回水温度','t_ch_return','float','℃'),
+        FORM_FIELD('用户侧冷冻水流量','G_ch_user','float','m³/h'),
+        FORM_FIELD('冷冻水系统供回水压差','delta_P_ch','float','kPa'),
+        FORM_FIELD('室外环境干球温度','t_envir','float','℃'),
+        FORM_FIELD('室外环境相对湿度','RH_envir','float','%'),
+        FORM_FIELD('室外湿球温度','t_wb','float','℃'),
+      ], readonly)}
+      ${accGroup('冷却水系统工况', [
+        FORM_FIELD('冷却水进水温度','t_co_in','float','℃'),
+        FORM_FIELD('冷却水回水温度','t_co_back','float','℃'),
+        FORM_FIELD('冷却水系统总流量','G_co_total','float','m³/h'),
+        FORM_FIELD('冷却水系统供回水压差','delta_P_co','float','kPa'),
+      ], readonly)}
+      ${accGroup('系统性能指标', [
+        FORM_FIELD('冷源系统总电功率','P_total','float','kW'),
+        FORM_FIELD('系统综合能效比','EER','float',''),
+      ], readonly)}
+      ${accGroup('分项功率', [
+        FORM_FIELD('冷机总功率','P_chiller_total','float','kW'),
+        FORM_FIELD('冷冻泵总功率','P_pump_ch_total','float','kW'),
+        FORM_FIELD('冷却泵总功率','P_pump_co_total','float','kW'),
+        FORM_FIELD('冷却塔总功率','P_tower_total','float','kW'),
+      ], readonly)}
+      ${accGroup('灰箱增强与元数据', [
+        FORM_FIELD('策略有效域','validity_domain','string',''),
+        FORM_FIELD('物理-数据分歧度','uncertainty','float',''),
+        FORM_FIELD('物理模型版本号','physics_version','string',''),
+        FORM_FIELD('物理约束检查通过','physics_check_pass','int',''),
+      ], readonly)}
+      ${accGroup('策略控制明细', [
+        `<div class="form-group full"><label class="form-label">各冷机启停状态 <span class="en">chiller_{i}_on_off</span></label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            ${['C001','C002','C003'].map(c => `<label style="display:flex;align-items:center;gap:5px;font-size:12px"><input type="checkbox" checked ${readonly?'disabled':''}/> ${c}</label>`).join('')}
+          </div></div>`,
+        `<div class="form-group full"><label class="form-label">各冷冻泵启停与频率设定 <span class="en">pump_ch_{i}_on_off / freq</span></label>
+          <table class="editable-table"><thead><tr><th>设备ID</th><th>启停</th><th>频率(Hz)</th></tr></thead>
+          <tbody>${['PCH01','PCH02'].map(p => `<tr><td>${p}</td><td><input type="checkbox" checked ${readonly?'disabled':''}/></td><td><input value="42" ${readonly?'readonly':''}/></td></tr>`).join('')}</tbody></table></div>`,
+        `<div class="form-group full"><label class="form-label">各冷却泵启停与频率设定 <span class="en">pump_co_{i}_on_off / freq</span></label>
+          <table class="editable-table"><thead><tr><th>设备ID</th><th>启停</th><th>频率(Hz)</th></tr></thead>
+          <tbody>${['PCO01','PCO02'].map(p => `<tr><td>${p}</td><td><input type="checkbox" checked ${readonly?'disabled':''}/></td><td><input value="44" ${readonly?'readonly':''}/></td></tr>`).join('')}</tbody></table></div>`,
+        `<div class="form-group full"><label class="form-label">各冷却塔启停与频率设定 <span class="en">tower_{i}_on_off / freq</span></label>
+          <table class="editable-table"><thead><tr><th>设备ID</th><th>启停</th><th>频率(Hz)</th></tr></thead>
+          <tbody>${['T001','T002'].map(t => `<tr><td>${t}</td><td><input type="checkbox" checked ${readonly?'disabled':''}/></td><td><input value="42" ${readonly?'readonly':''}/></td></tr>`).join('')}</tbody></table></div>`,
+      ], readonly)}
+      ${accGroup('生命周期（只读）', [
+        FORM_FIELD('策略生成时间','created_at','datetime',''),
+        FORM_FIELD('最后验证时间','last_validated_at','datetime',''),
+        FORM_FIELD('累计验证次数','validation_count','int','次'),
+        FORM_FIELD('平均EER偏差','avg_eer_deviation','float',''),
+        FORM_FIELD('策略质量权重','quality_weight','float',''),
+      ], true)}
+    </div>
+  `;
+  return {title, body, size:'modal-xl', hideFooter:readonly};
+}
+
+/* ================= STRATEGY CONTROL DETAIL ================= */
+function strategyControlDetailModal(id) {
+  return {
+    title: `策略控制明细 - ${id}`,
+    size:'modal-xl',
+    body:`
+      <div class="section-note">该策略将自动下发到以下设备（模拟示例，逐台列按实际台数展开）</div>
+      <table class="editable-table">
+        <thead><tr><th>设备类别</th><th>设备ID</th><th>启停状态</th><th>频率设定 (Hz)</th><th>命令下发状态</th></tr></thead>
+        <tbody>
+          ${[['冷水机组','C001',1,'—','已下发（自动）'],['冷水机组','C002',1,'—','已下发（自动）'],['冷水机组','C003',0,'—','未启用'],
+             ['冷冻泵','PCH01',1,42,'已下发'],['冷冻泵','PCH02',1,41,'已下发'],
+             ['冷却泵','PCO01',1,44,'已下发'],['冷却泵','PCO02',1,45,'已下发'],
+             ['冷却塔','T001',1,42,'已下发'],['冷却塔','T002',1,41,'已下发']].map(r => `
+            <tr>${r.map((v,i) => i===2?`<td><span class="status-tag ${v?'status-on':'status-off'}">${v?'运行':'停止'}</span></td>`:`<td>${v}</td>`).join('')}</tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `
+  };
+}
+
+/* ================= OPTIMAL MODAL ================= */
+function optimalModal({readonly, mode, id}) {
+  const title = readonly ? '查看最优策略' : (mode==='create' ? '创建最优策略' : '编辑最优策略');
+  const body = `
+    <div class="form-grid" style="margin-bottom:12px">
+      <div class="form-group"><label class="form-label">策略ID</label><input value="${id||''}" ${readonly?'readonly':''} /></div>
+      <div class="form-group"><label class="form-label">所属项目</label><input value="${readonly?'P001':''}" ${readonly?'readonly':''} /></div>
+    </div>
+    <div class="accordion">
+      ${accGroup('时间与状态', [
+        FORM_FIELD('数据采样时间戳','timestamp','datetime',''),
+        FORM_FIELD('上一策略是否已执行','strategy_executed','int',''),
+      ], readonly, true)}
+      ${accGroup('核心工况（必填，缺失返回 400）', [
+        FORM_FIELD('当前冷负荷','Q_load','float','kW'),
+        FORM_FIELD('冷冻水供水温度（当前值）','t_ch_supply','float','℃'),
+        FORM_FIELD('冷源侧冷冻水总流量（当前值）','G_ch_total','float','m³/h'),
+        FORM_FIELD('用户侧最小冷冻水流量','G_ch_user_min','float','m³/h'),
+      ], readonly)}
+      ${accGroup('气象', [
+        FORM_FIELD('室外干球温度','t_envir','float','℃'),
+        FORM_FIELD('室外相对湿度','RH_envir','float','%'),
+        FORM_FIELD('室外湿球温度','t_wb','float','℃'),
+      ], readonly)}
+      ${accGroup('冷冻水与压差', [
+        FORM_FIELD('冷冻水供回水压差（当前值）','delta_P_ch','float','kPa'),
+        FORM_FIELD('冷冻水回水温度（当前值）','t_ch_return','float','℃'),
+        FORM_FIELD('系统总功率（当前值）','P_total','float','kW'),
+      ], readonly)}
+      ${accGroup('冷却水', [
+        FORM_FIELD('冷却水总流量（当前值）','G_co_total','float','m³/h'),
+        FORM_FIELD('冷却水供回水压差（当前值）','delta_P_co','float','kPa'),
+        FORM_FIELD('冷却水进水温度（当前值）','t_co_in','float','℃'),
+        FORM_FIELD('冷却水回水温度（当前值）','t_co_back','float','℃'),
+      ], readonly)}
+      ${accGroup('最不利末端（无末端传感器时留空，对应纠偏项跳过）', [
+        FORM_FIELD('最不利末端压差（当前值）','delta_P_worst','float','kPa'),
+        FORM_FIELD('最不利末端温度（当前值）','t_worst','float','℃'),
+        FORM_FIELD('最不利末端湿度（当前值）','RH_worst','float','%'),
+      ], readonly)}
+    </div>
+  `;
+  return {title, body, size:'modal-xl', hideFooter:readonly};
+}
+
+/* ================= INIT ================= */
+render('project');
+
+</script>
+
+</body>
+</html>
